@@ -18,10 +18,17 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalInterceptors(new ResponseInterceptor(), new LoggingInterceptor());
+  app.useGlobalInterceptors(
+    new ResponseInterceptor(),
+    new LoggingInterceptor(),
+  );
   app.useGlobalGuards(new JwtAuthGuard(reflector), new RolesGuard(reflector));
 
   const swaggerConfig = new DocumentBuilder()
@@ -30,10 +37,14 @@ async function bootstrap() {
     .setVersion('1.0')
     .addBearerAuth()
     .build();
-  SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, swaggerConfig));
+  SwaggerModule.setup(
+    'api/docs',
+    app,
+    SwaggerModule.createDocument(app, swaggerConfig),
+  );
 
   const port = config.get<number>('port') ?? 3000;
   await app.listen(port);
 }
 
-bootstrap();
+void bootstrap();
