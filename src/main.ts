@@ -26,7 +26,7 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(
-    new ResponseInterceptor(),
+    new ResponseInterceptor(reflector),
     new LoggingInterceptor(),
   );
   app.useGlobalGuards(new JwtAuthGuard(reflector), new RolesGuard(reflector));
@@ -44,6 +44,7 @@ async function bootstrap() {
   );
 
   const port = config.get<number>('port') ?? 3000;
+  console.log(`application running on port: ${port}`);
   await app.listen(port);
 }
 

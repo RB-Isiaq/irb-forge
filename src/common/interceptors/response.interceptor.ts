@@ -4,27 +4,36 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  timestamp: string;
-}
+import { ApiSuccessResponse } from '../types/api-response.types';
+import { RESPONSE_MESSAGE_KEY } from '../decorators/response-message.decorator';
 
 @Injectable()
 export class ResponseInterceptor<T>
-  implements NestInterceptor<T, ApiResponse<T>>
+  implements NestInterceptor<T, ApiSuccessResponse<T>>
 {
+  constructor(private readonly reflector: Reflector) {}
+
   intercept(
-    _context: ExecutionContext,
+    context: ExecutionContext,
     next: CallHandler,
-  ): Observable<ApiResponse<T>> {
+  ): Observable<ApiSuccessResponse<T>> {
+    const statusCode = context
+      .switchToHttp()
+      .getResponse<{ statusCode: number }>().statusCode;
+
+    const message =
+      this.reflector.get<string>(RESPONSE_MESSAGE_KEY, context.getHandler()) ??
+      null;
+
     return next.handle().pipe(
       map((data: T) => ({
         success: true,
+        statusCode,
         data,
+        message,
         timestamp: new Date().toISOString(),
       })),
     );
