@@ -12,6 +12,7 @@ import {
   VerifyEmailJobData,
   ResetPasswordJobData,
   WelcomeJobData,
+  InviteJobData,
 } from '../queues/email.queue';
 
 @Processor(EMAIL_QUEUE)
@@ -45,6 +46,9 @@ export class EmailProcessor extends WorkerHost {
       case EmailJobName.WELCOME:
         await this.handleWelcome(job.data as WelcomeJobData);
         break;
+      case EmailJobName.INVITE:
+        await this.handleInvite(job.data as InviteJobData);
+        break;
       default:
         this.logger.warn(`Unknown email job: ${job.name}`);
     }
@@ -72,6 +76,21 @@ export class EmailProcessor extends WorkerHost {
       year: new Date().getFullYear().toString(),
     });
     await this.send(data.to, 'Welcome to IRB Forge', html);
+  }
+
+  private async handleInvite(data: InviteJobData): Promise<void> {
+    const html = this.renderTemplate('invite', {
+      orgName: data.orgName,
+      inviterName: data.inviterName,
+      role: data.role,
+      acceptUrl: data.acceptUrl,
+      declineUrl: data.declineUrl,
+    });
+    await this.send(
+      data.to,
+      `You've been invited to join ${data.orgName} on IRB Forge`,
+      html,
+    );
   }
 
   private resolveTemplatesDir(): string {
