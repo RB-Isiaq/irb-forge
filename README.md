@@ -1,141 +1,173 @@
 # IRB Forge
 
-A multi-tenant SaaS platform for mentorship groups and communities. Organizations can manage members, run cohort programs, and monetize via subscriptions.
+A multi-tenant SaaS API for mentorship communities. Organizations can manage members with role-based access, run cohort programs, send email invitations, and monetize via subscriptions.
 
-> Active development — built weekend by weekend. See build progress below.
+**Stack:** NestJS · PostgreSQL · Redis + BullMQ · JWT + Google OAuth · Stripe · Nodemailer + Handlebars
 
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Runtime | Node.js + NestJS (TypeScript) |
-| Database | PostgreSQL (Neon) |
-| Cache / Queues | Redis + BullMQ |
-| Auth | JWT + Refresh Tokens + Google OAuth |
-| Payments | Stripe |
-| Email | Nodemailer + Handlebars (Mailtrap in dev) |
-| Validation | class-validator + class-transformer |
+---
 
 ## Getting Started
 
-**Prerequisites:** Node.js ≥ 20, npm ≥ 10, PostgreSQL, Redis
+**Prerequisites:** Node.js ≥ 20, PostgreSQL, Redis
 
 ```bash
-# Install dependencies
 npm install
-
-# Copy env file and fill in your values
-cp .env.example .env
-
-# Start dev server with hot reload
+cp .env.example .env   # fill in your values
 npm run start:dev
 ```
 
-API: `http://localhost:3000/api`
-Swagger docs: `http://localhost:3000/api/docs`
+- API: `http://localhost:3000/api`
+- Swagger docs: `http://localhost:3000/api/docs`
 
-## Scripts
-
-```bash
-npm run start:dev     # Development with hot reload
-npm run build         # Compile TypeScript
-npm run start:prod    # Run compiled output
-npm run lint          # ESLint (auto-fix)
-npm run lint:check    # ESLint (check only, used in CI)
-npm run test          # Unit tests
-npm run test:e2e      # End-to-end tests
-npm run test:cov      # Test coverage
-```
+---
 
 ## Environment Variables
-
-Copy `.env.example` to `.env`:
 
 ```env
 PORT=3000
 NODE_ENV=development
+
 DATABASE_URL=postgresql://user:password@localhost:5432/irb_forge
+
 JWT_SECRET=
 JWT_REFRESH_SECRET=
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
 REDIS_URL=redis://localhost:6379
+
 MAIL_HOST=sandbox.smtp.mailtrap.io
 MAIL_PORT=2525
 MAIL_USER=
 MAIL_PASS=
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=placeholder
+
+FRONTEND_URL=http://localhost:3001
+
 GOOGLE_CLIENT_ID=
+
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
 ```
 
-## Architecture
+---
 
-Domain-driven modular structure. Strict layering:
+## Scripts
 
+```bash
+npm run start:dev     # dev server with hot reload
+npm run build         # compile TypeScript
+npm run start:prod    # run compiled output
+npm run test          # unit tests
+npm run lint:check    # ESLint check (used in CI)
+npm run lint          # ESLint auto-fix
 ```
-Controller (HTTP only) → Service (business logic) → Repository (DB queries) → Database
-```
 
-Cross-module communication:
-- **Direct calls** — same business transaction, must rollback together
-- **Events** — side effects (e.g. send email after registration)
-- **Queues** — all email sending via BullMQ, never inline in the request cycle
+---
 
-## API Response Shape
+## API
 
-All endpoints return a consistent envelope:
+All endpoints are prefixed `/api`. Every response follows a consistent envelope:
 
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "data": { },
+  "data": {},
   "message": "Human-readable context",
   "timestamp": "2026-05-03T14:00:00.000Z"
 }
 ```
 
-Errors:
-```json
-{
-  "success": false,
-  "statusCode": 401,
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Invalid credentials",
-    "details": []
-  },
-  "path": "/api/auth/login",
-  "timestamp": "2026-05-03T14:00:00.000Z"
-}
-```
+Protected endpoints require `Authorization: Bearer <accessToken>`. Access tokens expire in 15 minutes — use `POST /api/auth/refresh` to rotate.
 
-## Build Progress
+---
 
-| Module | Status | Endpoints |
-|--------|--------|-----------|
-| Auth + Users | ✅ Complete | 12 endpoints |
-| Organizations + Memberships | 🔜 Weekend 2 | — |
-| Invitations | 🔜 Weekend 2 | — |
-| Programs + Enrollments | 🔜 Weekend 3 | — |
-| Messages | 🔜 Weekend 3 | — |
-| Subscriptions + Payments | 🔜 Weekend 4 | — |
-
-### Auth Module (Complete)
+### Auth
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/auth/register` | No | Register + receive verification OTP |
-| POST | `/auth/verify-email` | No | Verify email with 6-digit OTP |
-| POST | `/auth/resend-verification` | No | Resend verification OTP |
-| POST | `/auth/login` | No | Email/password login |
-| POST | `/auth/google` | No | Google Sign-In (ID token exchange) |
-| POST | `/auth/refresh` | Refresh token | Rotate token pair |
-| POST | `/auth/logout` | Yes | Invalidate session |
-| POST | `/auth/change-password` | Yes | Change password (invalidates all sessions) |
-| POST | `/auth/forgot-password` | No | Request password reset email |
-| POST | `/auth/reset-password` | No | Reset password with email token |
-| GET | `/users/me` | Yes | Get current user profile |
-| PATCH | `/users/me` | Yes | Update profile fields |
+| POST | `/api/auth/register` | No | Register — returns tokens + sends OTP email |
+| POST | `/api/auth/verify-email` | No | Verify email with 6-digit OTP |
+| POST | `/api/auth/resend-verification` | No | Resend OTP |
+| POST | `/api/auth/login` | No | Email + password login |
+| POST | `/api/auth/google` | No | Google Sign-In (ID token exchange) |
+| POST | `/api/auth/refresh` | Refresh token | Rotate access + refresh token pair |
+| POST | `/api/auth/logout` | Yes | Invalidate refresh token |
+| POST | `/api/auth/forgot-password` | No | Send password reset email |
+| POST | `/api/auth/reset-password` | No | Reset password with email token |
+| POST | `/api/auth/change-password` | Yes | Change password (invalidates all sessions) |
+
+### Users
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/users/me` | Yes | Get current user profile |
+| PATCH | `/api/users/me` | Yes | Update name fields |
+
+### Organizations
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/organizations` | Yes | Create organization (verified users only) |
+| GET | `/api/organizations` | Yes | List orgs I belong to |
+| GET | `/api/organizations/:slug` | Yes | Get org by slug (members only) |
+| PATCH | `/api/organizations/:slug` | Yes | Update org (owner/admin) |
+| DELETE | `/api/organizations/:slug` | Yes | Delete org (owner only) |
+
+### Members
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/organizations/:slug/members` | Yes | List members with user info |
+| PATCH | `/api/organizations/:slug/members/:userId/role` | Yes | Update member role (owner/admin) |
+| DELETE | `/api/organizations/:slug/members/me` | Yes | Leave organization |
+| DELETE | `/api/organizations/:slug/members/:userId` | Yes | Remove member (owner/admin) |
+
+### Invitations
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/organizations/:slug/invitations` | Yes | Invite by email (owner/admin) |
+| GET | `/api/organizations/:slug/invitations` | Yes | List pending invitations (owner/admin) |
+| DELETE | `/api/organizations/:slug/invitations/:id` | Yes | Cancel invitation (owner/admin) |
+| GET | `/api/invitations/preview?token=` | **No** | Preview invite details (public) |
+| GET | `/api/invitations/me` | Yes | My pending invitation inbox |
+| POST | `/api/invitations/accept` | Yes | Accept invitation |
+| POST | `/api/invitations/decline` | Yes | Decline invitation |
+
+---
+
+## Role System
+
+### Platform roles (on every user)
+
+| Role | Description |
+|------|-------------|
+| `user` | Default for all registered users |
+| `super_admin` | Platform administration |
+
+### Org membership roles (per organization)
+
+| Role | Description |
+|------|-------------|
+| `owner` | Full control — auto-assigned on org creation |
+| `admin` | Manage members and invitations |
+| `mentor` | Create and lead programs |
+| `member` | Enroll in programs, receive announcements |
+
+---
+
+## Architecture
+
+Domain-driven modules. Strict layering — controllers handle HTTP only, services own business logic, repositories own DB queries.
+
+```
+Controller → Service → Repository → Database
+```
+
+Side effects (emails, notifications) are always async via event emitter → BullMQ queue → processor. A failed email never fails the request.
+
+---
 
 ## License
 
