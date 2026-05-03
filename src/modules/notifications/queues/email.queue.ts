@@ -15,7 +15,7 @@ export interface VerifyEmailJobData {
 
 export interface ResetPasswordJobData {
   to: string;
-  token: string;
+  resetUrl: string;
 }
 
 export interface WelcomeJobData {

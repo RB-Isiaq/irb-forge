@@ -21,8 +21,8 @@ export class NotificationsService {
     });
   }
 
-  async sendPasswordResetEmail(to: string, token: string): Promise<void> {
-    const data: ResetPasswordJobData = { to, token };
+  async sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
+    const data: ResetPasswordJobData = { to, resetUrl };
     await this.emailQueue.add(EmailJobName.RESET_PASSWORD, data, {
       attempts: 3,
       backoff: { type: 'exponential', delay: 5000 },

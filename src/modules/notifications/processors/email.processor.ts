@@ -18,6 +18,7 @@ import {
 export class EmailProcessor extends WorkerHost {
   private readonly logger = new Logger(EmailProcessor.name);
   private readonly transporter: nodemailer.Transporter;
+  private partialsRegistered = false;
 
   constructor(private readonly config: ConfigService) {
     super();
@@ -59,22 +60,23 @@ export class EmailProcessor extends WorkerHost {
   }
 
   private async handleResetPassword(data: ResetPasswordJobData): Promise<void> {
-    const html = this.renderTemplate('reset-password', { token: data.token });
+    const html = this.renderTemplate('reset-password', {
+      resetUrl: data.resetUrl,
+    });
     await this.send(data.to, 'Reset your password — IRB Forge', html);
   }
 
   private async handleWelcome(data: WelcomeJobData): Promise<void> {
     const html = this.renderTemplate('welcome', {
       firstName: data.firstName ?? '',
+      year: new Date().getFullYear().toString(),
     });
     await this.send(data.to, 'Welcome to IRB Forge', html);
   }
 
   private resolveTemplatesDir(): string {
-    // dist/modules/notifications/processors -> dist/modules/notifications/templates
     const distDir = path.join(__dirname, '..', 'templates');
     if (fs.existsSync(distDir)) return distDir;
-    // Fallback: read directly from src during development
     return path.join(
       process.cwd(),
       'src',
@@ -84,10 +86,35 @@ export class EmailProcessor extends WorkerHost {
     );
   }
 
+  private registerPartials(): void {
+    if (this.partialsRegistered) return;
+
+    const baseDir = this.resolveTemplatesDir();
+
+    // Register layout as a partial named 'layout'
+    const layoutPath = path.join(baseDir, 'layouts', 'main.hbs');
+    handlebars.registerPartial('layout', fs.readFileSync(layoutPath, 'utf-8'));
+
+    // Register all files in partials/ directory by their filename (without .hbs)
+    const partialsDir = path.join(baseDir, 'partials');
+    fs.readdirSync(partialsDir).forEach((file) => {
+      if (!file.endsWith('.hbs')) return;
+      const name = file.replace('.hbs', '');
+      handlebars.registerPartial(
+        name,
+        fs.readFileSync(path.join(partialsDir, file), 'utf-8'),
+      );
+    });
+
+    this.partialsRegistered = true;
+    this.logger.log('Email partials registered');
+  }
+
   private renderTemplate(
     name: string,
     context: Record<string, string>,
   ): string {
+    this.registerPartials();
     const templatePath = path.join(this.resolveTemplatesDir(), `${name}.hbs`);
     const source = fs.readFileSync(templatePath, 'utf-8');
     return handlebars.compile(source)(context);

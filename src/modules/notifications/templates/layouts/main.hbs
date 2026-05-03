@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
+    {{> theme}}
+  </head>
+  <body style="margin:0; padding:0;">
+    <table width="100%" cellspacing="0" cellpadding="0" style="padding:40px 0;">
+      <tr>
+        <td align="center">
+          <table width="600" class="container" style="border-radius:12px; padding:40px; width:600px; max-width:100%;">
+            {{> header}}
+            {{> @partial-block}}
+            {{> footer}}
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

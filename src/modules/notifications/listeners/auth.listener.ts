@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from '../services/notifications.service';
 
 interface AuthRegisteredEvent {
@@ -22,7 +23,10 @@ interface AuthVerificationResentEvent {
 export class AuthListener {
   private readonly logger = new Logger(AuthListener.name);
 
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly config: ConfigService,
+  ) {}
 
   @OnEvent('auth.registered', { async: true })
   async handleRegistered(payload: AuthRegisteredEvent): Promise<void> {
@@ -52,9 +56,11 @@ export class AuthListener {
   @OnEvent('auth.forgotPassword', { async: true })
   async handleForgotPassword(payload: AuthForgotPasswordEvent): Promise<void> {
     this.logger.log(`Queuing password reset email for ${payload.email}`);
+    const frontendUrl = this.config.getOrThrow<string>('frontendUrl');
+    const resetUrl = `${frontendUrl}/reset-password?token=${payload.token}`;
     await this.notificationsService.sendPasswordResetEmail(
       payload.email,
-      payload.token,
+      resetUrl,
     );
   }
 }

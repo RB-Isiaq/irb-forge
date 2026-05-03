@@ -26,4 +26,5 @@ export const configuration = () => ({
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID,
   },
+  frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
 });

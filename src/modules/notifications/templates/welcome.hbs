@@ -1,12 +1,27 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Welcome to IRB Forge</title>
-  </head>
-  <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-    <h2>Welcome to IRB Forge{{#if firstName}}, {{firstName}}{{/if}}!</h2>
-    <p>Your account has been created. Please verify your email to get started.</p>
-    <p style="color:#888; font-size:12px;">You will receive a separate email with your verification token.</p>
-  </body>
-</html>
+{{#> layout}}
+<tr>
+  <td>
+    <h2 class="text-primary" style="margin:0 0 12px;">
+      Welcome{{#if firstName}}, {{firstName}}{{/if}} 👋
+    </h2>
+
+    <p class="text-secondary" style="line-height:1.6;">
+      Your account has been successfully created.
+      You're one step away from getting started.
+    </p>
+
+    <p class="text-secondary" style="line-height:1.6;">
+      Please verify your email address to unlock full access to your account.
+      Check for a separate email with your verification code.
+    </p>
+
+    {{#if verificationLink}}
+      {{> button url=verificationLink text="Verify Email"}}
+    {{/if}}
+
+    <p class="text-muted" style="font-size:13px;">
+      Didn't receive the code? You can request a new one from the app.
+    </p>
+  </td>
+</tr>
+{{/layout}}
