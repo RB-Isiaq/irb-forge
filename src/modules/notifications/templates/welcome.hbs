@@ -1,0 +1,27 @@
+{{#> layout}}
+<tr>
+  <td>
+    <h2 class="text-primary" style="margin:0 0 12px;">
+      Welcome{{#if firstName}}, {{firstName}}{{/if}} 👋
+    </h2>
+
+    <p class="text-secondary" style="line-height:1.6;">
+      Your account has been successfully created.
+      You're one step away from getting started.
+    </p>
+
+    <p class="text-secondary" style="line-height:1.6;">
+      Please verify your email address to unlock full access to your account.
+      Check for a separate email with your verification code.
+    </p>
+
+    {{#if verificationLink}}
+      {{> button url=verificationLink text="Verify Email"}}
+    {{/if}}
+
+    <p class="text-muted" style="font-size:13px;">
+      Didn't receive the code? You can request a new one from the app.
+    </p>
+  </td>
+</tr>
+{{/layout}}

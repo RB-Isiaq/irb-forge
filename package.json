@@ -5,7 +5,7 @@
   "description": "Nest TypeScript starter repository",
   "license": "MIT",
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && cp -r src/modules/notifications/templates dist/modules/notifications/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -45,6 +45,7 @@
     "cache-manager": "^7.2.8",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "google-auth-library": "^10.6.2",
     "handlebars": "^4.7.9",
     "joi": "^18.1.2",
     "nodemailer": "^8.0.7",
