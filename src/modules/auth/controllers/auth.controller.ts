@@ -5,7 +5,9 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from '../services/auth.service';
@@ -92,8 +94,8 @@ export class AuthController {
   @ResponseMessage('Logged out successfully')
   @ApiOkWrappedResponse(MessageResponseDto)
   @ApiUnauthorizedWrappedResponse()
-  async logout(@CurrentUser() user: { id: string }) {
-    await this.authService.logout(user.id);
+  async logout(@CurrentUser() user: { id: string }, @Req() req: Request) {
+    await this.authService.logout(user.id, req.tokenJti, req.tokenExp);
     return { message: 'Logged out successfully' };
   }
 

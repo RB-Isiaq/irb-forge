@@ -16,5 +16,6 @@ export const validationSchema = Joi.object({
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_WEBHOOK_SECRET: Joi.string().required(),
   GOOGLE_CLIENT_ID: Joi.string().required(),
-  FRONTEND_URL: Joi.string().default('http://localhost:3000'),
+  FRONTEND_URL: Joi.string().default('http://localhost:3001'),
+  CORS_ORIGINS: Joi.string().optional(),
 });

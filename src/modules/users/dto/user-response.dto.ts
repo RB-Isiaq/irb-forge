@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '../enums/user-role.enum';
 
 export class UserResponseDto {
@@ -19,6 +19,9 @@ export class UserResponseDto {
 
   @ApiProperty({ enum: UserRole, example: UserRole.USER })
   role!: UserRole;
+
+  @ApiPropertyOptional({ example: '108291837465029384756', nullable: true })
+  googleId!: string | null;
 
   @ApiProperty({ example: '2026-05-02T22:00:00.000Z' })
   createdAt!: Date;

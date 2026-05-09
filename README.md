@@ -1,8 +1,10 @@
 # IRB Forge
 
-A multi-tenant SaaS API for mentorship communities. Organizations can manage members with role-based access, run cohort programs, send email invitations, and monetize via subscriptions.
+A multi-tenant SaaS API for mentorship communities. Organizations manage members with role-based access, run cohort programs, send email invitations, and monetize via subscriptions.
 
 **Stack:** NestJS · PostgreSQL · Redis + BullMQ · JWT + Google OAuth · Stripe · Nodemailer + Handlebars
+
+**Current state:** Weekends 1–3 complete — 47 endpoints across auth, users, organizations, memberships, invitations, programs, enrollments, and messages.
 
 ---
 
@@ -42,6 +44,9 @@ MAIL_USER=
 MAIL_PASS=
 
 FRONTEND_URL=http://localhost:3001
+
+# CORS — comma-separated. Defaults to FRONTEND_URL if not set.
+# CORS_ORIGINS=https://app.irb-forge.com,https://admin.irb-forge.com
 
 GOOGLE_CLIENT_ID=
 
@@ -92,7 +97,7 @@ Protected endpoints require `Authorization: Bearer <accessToken>`. Access tokens
 | POST | `/api/auth/login` | No | Email + password login |
 | POST | `/api/auth/google` | No | Google Sign-In (ID token exchange) |
 | POST | `/api/auth/refresh` | Refresh token | Rotate access + refresh token pair |
-| POST | `/api/auth/logout` | Yes | Invalidate refresh token |
+| POST | `/api/auth/logout` | Yes | Invalidate refresh token + blacklist access token immediately |
 | POST | `/api/auth/forgot-password` | No | Send password reset email |
 | POST | `/api/auth/reset-password` | No | Reset password with email token |
 | POST | `/api/auth/change-password` | Yes | Change password (invalidates all sessions) |
@@ -119,6 +124,7 @@ Protected endpoints require `Authorization: Bearer <accessToken>`. Access tokens
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | GET | `/api/organizations/:slug/members` | Yes | List members with user info |
+| GET | `/api/organizations/:slug/members/me` | Yes | Get own membership + role |
 | PATCH | `/api/organizations/:slug/members/:userId/role` | Yes | Update member role (owner/admin) |
 | DELETE | `/api/organizations/:slug/members/me` | Yes | Leave organization |
 | DELETE | `/api/organizations/:slug/members/:userId` | Yes | Remove member (owner/admin) |
@@ -130,10 +136,41 @@ Protected endpoints require `Authorization: Bearer <accessToken>`. Access tokens
 | POST | `/api/organizations/:slug/invitations` | Yes | Invite by email (owner/admin) |
 | GET | `/api/organizations/:slug/invitations` | Yes | List pending invitations (owner/admin) |
 | DELETE | `/api/organizations/:slug/invitations/:id` | Yes | Cancel invitation (owner/admin) |
-| GET | `/api/invitations/preview?token=` | **No** | Preview invite details (public) |
+| POST | `/api/organizations/:slug/invitations/:id/resend` | Yes | Resend invitation email (owner/admin) |
+| GET | `/api/invitations/preview?token=` | **No** | Preview invite details (public, email flow) |
 | GET | `/api/invitations/me` | Yes | My pending invitation inbox |
-| POST | `/api/invitations/accept` | Yes | Accept invitation |
-| POST | `/api/invitations/decline` | Yes | Decline invitation |
+| POST | `/api/invitations/accept` | Yes | Accept invite via token (email flow) |
+| POST | `/api/invitations/decline` | Yes | Decline invite via token (email flow) |
+| PATCH | `/api/invitations/:id/accept` | Yes | Accept invite via ID (in-app inbox) |
+| PATCH | `/api/invitations/:id/decline` | Yes | Decline invite via ID (in-app inbox) |
+
+### Programs
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/organizations/:slug/programs` | Yes | Create program (owner/admin/mentor) |
+| GET | `/api/organizations/:slug/programs` | Yes | List all programs (all members) |
+| GET | `/api/organizations/:slug/programs/:id` | Yes | Get single program (all members) |
+| PATCH | `/api/organizations/:slug/programs/:id` | Yes | Update program (owner/admin; mentor — own only) |
+| DELETE | `/api/organizations/:slug/programs/:id` | Yes | Delete program (owner/admin) |
+
+### Enrollments
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/organizations/:slug/programs/:programId/enrollments` | Yes | Enroll self (member only) |
+| GET | `/api/organizations/:slug/programs/:programId/enrollments` | Yes | List enrolled users (owner/admin/mentor) |
+| GET | `/api/organizations/:slug/programs/:programId/enrollments/me` | Yes | Check own enrollment status (all members) |
+| DELETE | `/api/organizations/:slug/programs/:programId/enrollments/me` | Yes | Drop self from program |
+| PATCH | `/api/organizations/:slug/programs/:programId/enrollments/:userId` | Yes | Mark enrollment completed/dropped (owner/admin/mentor) |
+| GET | `/api/organizations/:slug/enrollments` | Yes | My enrollments across all org programs (all members) |
+
+### Messages
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/organizations/:slug/messages` | Yes | Send org-wide announcement (owner/admin/mentor) |
+| GET | `/api/organizations/:slug/messages` | Yes | List announcements with author info (all members) |
 
 ---
 

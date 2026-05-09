@@ -34,6 +34,12 @@ export class InvitationsRepository {
     });
   }
 
+  findPendingById(id: string): Promise<Invitation | null> {
+    return this.repo.findOne({
+      where: { id, status: InvitationStatus.PENDING },
+    });
+  }
+
   findPendingByToken(tokenHash: string): Promise<Invitation | null> {
     return this.repo
       .createQueryBuilder('invitation')
@@ -57,6 +63,14 @@ export class InvitationsRepository {
 
   async updateStatus(id: string, status: InvitationStatus): Promise<void> {
     await this.repo.update(id, { status });
+  }
+
+  async refreshToken(
+    id: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.repo.update(id, { token: tokenHash, expiresAt });
   }
 
   findPreviewByToken(tokenHash: string): Promise<Invitation | null> {

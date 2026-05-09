@@ -12,6 +12,7 @@ import { OAuth2Client } from 'google-auth-library';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { UsersService } from '../../users/services/users.service';
+import { RedisService } from '../../../common/redis/redis.service';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
@@ -25,6 +26,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly redisService: RedisService,
   ) {
     this.googleClient = new OAuth2Client(
       config.getOrThrow<string>('google.clientId'),
@@ -196,8 +198,16 @@ export class AuthService {
     return tokens;
   }
 
-  async logout(userId: string) {
+  async logout(userId: string, jti?: string, tokenExp?: number) {
     await this.usersService.updateRefreshToken(userId, null);
+
+    if (jti) {
+      const now = Math.floor(Date.now() / 1000);
+      const remaining = tokenExp ? tokenExp - now : 900; // fallback: 15m
+      if (remaining > 0) {
+        await this.redisService.set(`blacklist:${jti}`, '1', remaining);
+      }
+    }
   }
 
   async forgotPassword(email: string) {
@@ -234,16 +244,19 @@ export class AuthService {
   }
 
   private async generateTokens(userId: string, email: string) {
-    const payload: JwtPayload = { sub: userId, email };
+    const basePayload: JwtPayload = { sub: userId, email };
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: this.config.getOrThrow<string>('jwt.secret'),
-        expiresIn: this.config.getOrThrow<string>(
-          'jwt.expiresIn',
-        ) as StringValue,
-      }),
-      this.jwtService.signAsync(payload, {
+      this.jwtService.signAsync(
+        { ...basePayload, jti: crypto.randomUUID() },
+        {
+          secret: this.config.getOrThrow<string>('jwt.secret'),
+          expiresIn: this.config.getOrThrow<string>(
+            'jwt.expiresIn',
+          ) as StringValue,
+        },
+      ),
+      this.jwtService.signAsync(basePayload, {
         secret: this.config.getOrThrow<string>('jwt.refreshSecret'),
         expiresIn: this.config.getOrThrow<string>(
           'jwt.refreshExpiresIn',

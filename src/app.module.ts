@@ -7,6 +7,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { configuration, validationSchema } from './config';
 import { DatabaseModule } from './database/database.module';
+import { RedisModule } from './common/redis';
 import { AuthModule } from './modules/auth';
 import { UsersModule } from './modules/users';
 import { OrganizationsModule } from './modules/organizations';
@@ -40,6 +41,7 @@ import { NotificationsModule } from './modules/notifications';
       }),
     }),
     DatabaseModule,
+    RedisModule,
     AuthModule,
     UsersModule,
     OrganizationsModule,

@@ -16,6 +16,17 @@ async function bootstrap() {
   const reflector = app.get(Reflector);
 
   app.setGlobalPrefix('api');
+  const allowedOrigins = config
+    .getOrThrow<string>('cors.origins')
+    .split(',')
+    .map((o) => o.trim());
+
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({

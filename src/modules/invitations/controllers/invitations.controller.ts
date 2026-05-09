@@ -1,8 +1,10 @@
 import {
   Controller,
   Post,
+  Patch,
   Get,
   Body,
+  Param,
   Query,
   HttpCode,
   HttpStatus,
@@ -65,5 +67,27 @@ export class InvitationsController {
     @Body() dto: RespondInvitationDto,
   ): Promise<void> {
     return this.invitationsService.decline(user, dto.token);
+  }
+
+  @Patch(':id/accept')
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Invitation accepted')
+  acceptById(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<void> {
+    return this.invitationsService.acceptById(user, id);
+  }
+
+  @Patch(':id/decline')
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Invitation declined')
+  declineById(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<void> {
+    return this.invitationsService.declineById(user, id);
   }
 }
