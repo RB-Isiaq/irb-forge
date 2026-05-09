@@ -1,0 +1,47 @@
+{{#> layout}}
+<tr>
+  <td>
+    <h2 class="text-primary" style="margin:0 0 12px;">You're invited to join {{orgName}}</h2>
+
+    <p class="text-secondary" style="line-height:1.6; margin:0 0 8px;">
+      <strong>{{inviterName}}</strong> has invited you to join
+      <strong>{{orgName}}</strong> as a <strong>{{role}}</strong>.
+    </p>
+
+    <p class="text-muted" style="font-size:13px; line-height:1.6; margin:0 0 24px;">
+      This invitation expires in <strong>7 days</strong>.
+    </p>
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td style="padding-right:12px;">
+          {{> button url=acceptUrl text="Accept Invitation"}}
+        </td>
+        <td>
+          <a href="{{declineUrl}}" style="
+            display: inline-block;
+            padding: 12px 24px;
+            font-family: Inter, -apple-system, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            background-color: #F3F4F6;
+            border-radius: 8px;
+            text-decoration: none;
+          ">Decline</a>
+        </td>
+      </tr>
+    </table>
+
+    <p class="text-muted" style="font-size:12px; line-height:1.6; margin-top:20px;">
+      If the buttons don't work, use these links:<br />
+      Accept: <span style="font-family:'Courier New',monospace; word-break:break-all;">{{acceptUrl}}</span><br />
+      Decline: <span style="font-family:'Courier New',monospace; word-break:break-all;">{{declineUrl}}</span>
+    </p>
+
+    <p class="text-muted" style="font-size:12px; line-height:1.6; margin-top:16px;">
+      If you didn't expect this invitation, you can safely ignore this email.
+    </p>
+  </td>
+</tr>
+{{/layout}}

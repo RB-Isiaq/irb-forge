@@ -7,6 +7,7 @@ import {
   VerifyEmailJobData,
   ResetPasswordJobData,
   WelcomeJobData,
+  InviteJobData,
 } from '../queues/email.queue';
 
 @Injectable()
@@ -32,6 +33,28 @@ export class NotificationsService {
   async sendWelcomeEmail(to: string, firstName: string | null): Promise<void> {
     const data: WelcomeJobData = { to, firstName };
     await this.emailQueue.add(EmailJobName.WELCOME, data, {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 },
+    });
+  }
+
+  async sendInviteEmail(
+    to: string,
+    orgName: string,
+    inviterName: string,
+    role: string,
+    acceptUrl: string,
+    declineUrl: string,
+  ): Promise<void> {
+    const data: InviteJobData = {
+      to,
+      orgName,
+      inviterName,
+      role,
+      acceptUrl,
+      declineUrl,
+    };
+    await this.emailQueue.add(EmailJobName.INVITE, data, {
       attempts: 3,
       backoff: { type: 'exponential', delay: 5000 },
     });

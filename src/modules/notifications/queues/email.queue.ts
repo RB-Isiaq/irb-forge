@@ -4,6 +4,7 @@ export const EmailJobName = {
   VERIFY_EMAIL: 'verify-email',
   RESET_PASSWORD: 'reset-password',
   WELCOME: 'welcome',
+  INVITE: 'invite',
 } as const;
 
 export type EmailJobName = (typeof EmailJobName)[keyof typeof EmailJobName];
@@ -23,7 +24,17 @@ export interface WelcomeJobData {
   firstName: string | null;
 }
 
+export interface InviteJobData {
+  to: string;
+  orgName: string;
+  inviterName: string;
+  role: string;
+  acceptUrl: string;
+  declineUrl: string;
+}
+
 export type EmailJobData =
   | VerifyEmailJobData
   | ResetPasswordJobData
-  | WelcomeJobData;
+  | WelcomeJobData
+  | InviteJobData;
