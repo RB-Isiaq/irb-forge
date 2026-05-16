@@ -8,6 +8,8 @@ declare global {
       user?: User;
       org?: Organization;
       membership?: Membership;
+      tokenJti?: string;
+      tokenExp?: number;
     }
   }
 }

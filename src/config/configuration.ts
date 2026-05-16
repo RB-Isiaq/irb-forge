@@ -26,5 +26,12 @@ export const configuration = () => ({
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID,
   },
-  frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+  frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3001',
+  cors: {
+    // Comma-separated list of allowed origins. Defaults to FRONTEND_URL.
+    origins:
+      process.env.CORS_ORIGINS ??
+      process.env.FRONTEND_URL ??
+      'http://localhost:3001',
+  },
 });

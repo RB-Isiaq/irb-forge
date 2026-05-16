@@ -187,6 +187,103 @@ export class InvitationsService {
     return this.invitationsRepo.findPendingByEmail(userEmail);
   }
 
+  async acceptById(user: User, invitationId: string): Promise<void> {
+    if (!user.isVerified) {
+      throw new ForbiddenException(
+        'Email must be verified before accepting an invitation',
+      );
+    }
+
+    const invitation = await this.invitationsRepo.findPendingById(invitationId);
+    if (!invitation || invitation.expiresAt < new Date()) {
+      throw new NotFoundException('Invitation not found or has expired');
+    }
+    if (invitation.email !== user.email) {
+      throw new ForbiddenException(
+        'This invitation was sent to a different email address',
+      );
+    }
+
+    const alreadyMember = await this.dataSource
+      .getRepository(Membership)
+      .findOne({
+        where: { userId: user.id, organizationId: invitation.organizationId },
+      });
+    if (alreadyMember) {
+      throw new ConflictException(
+        'You are already a member of this organization',
+      );
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.save(
+        manager.create(Membership, {
+          userId: user.id,
+          organizationId: invitation.organizationId,
+          role: invitation.role,
+        }),
+      );
+      await manager.update(Invitation, invitation.id, {
+        status: InvitationStatus.ACCEPTED,
+      });
+    });
+  }
+
+  async declineById(user: User, invitationId: string): Promise<void> {
+    const invitation = await this.invitationsRepo.findPendingById(invitationId);
+    if (!invitation || invitation.expiresAt < new Date()) {
+      throw new NotFoundException('Invitation not found or has expired');
+    }
+    if (invitation.email !== user.email) {
+      throw new ForbiddenException(
+        'This invitation was sent to a different email address',
+      );
+    }
+
+    await this.invitationsRepo.updateStatus(
+      invitation.id,
+      InvitationStatus.DECLINED,
+    );
+  }
+
+  async resend(
+    org: Organization,
+    invitationId: string,
+    invitedBy: User,
+  ): Promise<void> {
+    const invitation = await this.invitationsRepo.findByIdAndOrg(
+      invitationId,
+      org.id,
+    );
+    if (!invitation) throw new NotFoundException('Invitation not found');
+    if (invitation.status !== InvitationStatus.PENDING) {
+      throw new ConflictException('Only pending invitations can be resent');
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + INVITE_EXPIRY_DAYS);
+
+    await this.invitationsRepo.refreshToken(
+      invitation.id,
+      tokenHash,
+      expiresAt,
+    );
+
+    this.eventEmitter.emit('invitation.created', {
+      email: invitation.email,
+      orgName: org.name,
+      inviterName: invitedBy.firstName ?? invitedBy.email,
+      role: invitation.role,
+      rawToken,
+    });
+  }
+
   async decline(user: User, rawToken: string): Promise<void> {
     const tokenHash = crypto
       .createHash('sha256')

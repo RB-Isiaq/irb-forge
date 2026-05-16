@@ -61,4 +61,15 @@ export class OrgInvitationsController {
   ): Promise<void> {
     return this.invitationsService.cancel(org, id);
   }
+
+  @Post(':id/resend')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Invitation resent')
+  resend(
+    @CurrentOrg() org: Organization,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<void> {
+    return this.invitationsService.resend(org, id, user);
+  }
 }

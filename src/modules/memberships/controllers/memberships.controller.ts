@@ -46,6 +46,13 @@ export class MembershipsController {
     return this.membershipsService.findAllByOrg(org.id);
   }
 
+  @Get('me')
+  @ResponseMessage('Membership retrieved')
+  @ApiOkWrappedResponse(MembershipResponseDto)
+  getMyMembership(@CurrentMembership() membership: Membership): Membership {
+    return membership;
+  }
+
   @Delete('me')
   @HttpCode(HttpStatus.NO_CONTENT)
   leave(

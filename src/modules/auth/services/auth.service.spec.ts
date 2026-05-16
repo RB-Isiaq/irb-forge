@@ -10,6 +10,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UsersService } from '../../users/services/users.service';
+import { RedisService } from '../../../common/redis/redis.service';
 import { User } from '../../users/entities/user.entity';
 
 const mockUser = (): User =>
@@ -34,6 +35,7 @@ describe('AuthService', () => {
   let service: AuthService;
   let usersService: jest.Mocked<UsersService>;
   let jwtService: jest.Mocked<JwtService>;
+  let redisService: jest.Mocked<RedisService>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
 
   beforeEach(async () => {
@@ -72,12 +74,21 @@ describe('AuthService', () => {
           provide: EventEmitter2,
           useValue: { emit: jest.fn() },
         },
+        {
+          provide: RedisService,
+          useValue: {
+            set: jest.fn().mockResolvedValue(undefined),
+            get: jest.fn().mockResolvedValue(null),
+            del: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
     service = module.get(AuthService);
     usersService = module.get(UsersService);
     jwtService = module.get(JwtService);
+    redisService = module.get(RedisService);
     eventEmitter = module.get(EventEmitter2);
   });
 
@@ -245,6 +256,28 @@ describe('AuthService', () => {
         'user-uuid',
         null,
       );
+    });
+
+    it('blacklists the jti in Redis when provided', async () => {
+      usersService.updateRefreshToken.mockResolvedValue();
+      const jti = 'test-jti-abc123';
+      const tokenExp = Math.floor(Date.now() / 1000) + 900;
+
+      await service.logout('user-uuid', jti, tokenExp);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(jest.mocked(redisService.set)).toHaveBeenCalledWith(
+        `blacklist:${jti}`,
+        '1',
+        expect.any(Number),
+      );
+    });
+
+    it('does not call Redis when no jti is provided', async () => {
+      usersService.updateRefreshToken.mockResolvedValue();
+      await service.logout('user-uuid');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(jest.mocked(redisService.set)).not.toHaveBeenCalled();
     });
   });
 
