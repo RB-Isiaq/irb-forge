@@ -6,10 +6,12 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ProgramsService } from '../services/programs.service';
 import { CreateProgramDto } from '../dto/create-program.dto';
@@ -59,8 +61,16 @@ export class ProgramsController {
   )
   @ResponseMessage('Programs retrieved')
   @ApiOkWrappedResponse(ProgramResponseDto)
-  list(@Param('slug') _slug: string, @CurrentOrg() org: Organization) {
-    return this.programsService.listByOrg(org.id);
+  list(
+    @Param('slug') _slug: string,
+    @CurrentOrg() org: Organization,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.programsService.listByOrgPaginated(
+      org.id,
+      pagination.page,
+      pagination.limit,
+    );
   }
 
   @Get(':id')

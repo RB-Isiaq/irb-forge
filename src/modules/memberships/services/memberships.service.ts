@@ -5,17 +5,64 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { MembershipsRepository } from '../repositories/memberships.repository';
+import { PaginatedResponseDto } from '../../../common/dto/paginated-response.dto';
+import { RedisService } from '../../../common/redis/redis.service';
 import { Membership } from '../entities/membership.entity';
 import { MembershipRole } from '../enums/membership-role.enum';
 import { UpdateRoleDto } from '../dto/update-role.dto';
 import { Organization } from '../../organizations/entities/organization.entity';
 
+const MEMBERS_CACHE_TTL = 30;
+
 @Injectable()
 export class MembershipsService {
-  constructor(private readonly membershipsRepo: MembershipsRepository) {}
+  constructor(
+    private readonly membershipsRepo: MembershipsRepository,
+    private readonly redisService: RedisService,
+  ) {}
+
+  private membersCacheKey(orgId: string) {
+    return `cache:members:${orgId}`;
+  }
+
+  async invalidateMembersCache(organizationId: string): Promise<void> {
+    await this.redisService.del(this.membersCacheKey(organizationId));
+  }
 
   findAllByOrg(organizationId: string): Promise<Membership[]> {
     return this.membershipsRepo.findAllByOrg(organizationId);
+  }
+
+  async findAllByOrgPaginated(
+    organizationId: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponseDto<Membership>> {
+    // Only cache the first page at default limit (most common request)
+    const isDefaultRequest = page === 1 && limit === 20;
+    const cacheKey = this.membersCacheKey(organizationId);
+
+    if (isDefaultRequest) {
+      const cached = await this.redisService.get(cacheKey);
+      if (cached) return JSON.parse(cached) as PaginatedResponseDto<Membership>;
+    }
+
+    const [items, total] = await this.membershipsRepo.findAllByOrgPaginated(
+      organizationId,
+      page,
+      limit,
+    );
+    const result = new PaginatedResponseDto(items, total, page, limit);
+
+    if (isDefaultRequest) {
+      await this.redisService.set(
+        cacheKey,
+        JSON.stringify(result),
+        MEMBERS_CACHE_TTL,
+      );
+    }
+
+    return result;
   }
 
   async updateRole(
@@ -37,6 +84,7 @@ export class MembershipsService {
     }
 
     await this.membershipsRepo.updateRole(target.id, dto.role);
+    await this.invalidateMembersCache(org.id);
     return { ...target, role: dto.role };
   }
 
@@ -60,6 +108,7 @@ export class MembershipsService {
     }
 
     await this.membershipsRepo.delete(target.id);
+    await this.invalidateMembersCache(org.id);
   }
 
   async leave(org: Organization, userId: string): Promise<void> {
@@ -75,5 +124,6 @@ export class MembershipsService {
     }
 
     await this.membershipsRepo.delete(membership.id);
+    await this.invalidateMembersCache(org.id);
   }
 }

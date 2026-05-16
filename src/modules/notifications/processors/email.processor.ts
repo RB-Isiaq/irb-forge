@@ -13,6 +13,7 @@ import {
   ResetPasswordJobData,
   WelcomeJobData,
   InviteJobData,
+  PaymentConfirmationJobData,
 } from '../queues/email.queue';
 
 @Processor(EMAIL_QUEUE)
@@ -48,6 +49,11 @@ export class EmailProcessor extends WorkerHost {
         break;
       case EmailJobName.INVITE:
         await this.handleInvite(job.data as InviteJobData);
+        break;
+      case EmailJobName.PAYMENT_CONFIRMATION:
+        await this.handlePaymentConfirmation(
+          job.data as PaymentConfirmationJobData,
+        );
         break;
       default:
         this.logger.warn(`Unknown email job: ${job.name}`);
@@ -91,6 +97,22 @@ export class EmailProcessor extends WorkerHost {
       `You've been invited to join ${data.orgName} on IRB Forge`,
       html,
     );
+  }
+
+  private async handlePaymentConfirmation(
+    data: PaymentConfirmationJobData,
+  ): Promise<void> {
+    const amountFormatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: data.currency.toUpperCase(),
+    }).format(data.amount / 100);
+
+    const html = this.renderTemplate('payment-confirmation', {
+      orgName: data.orgName,
+      amount: amountFormatted,
+      date: data.date,
+    });
+    await this.send(data.to, `Payment confirmed — IRB Forge Pro`, html);
   }
 
   private resolveTemplatesDir(): string {

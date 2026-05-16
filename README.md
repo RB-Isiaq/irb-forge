@@ -4,7 +4,7 @@ A multi-tenant SaaS API for mentorship communities. Organizations manage members
 
 **Stack:** NestJS · PostgreSQL · Redis + BullMQ · JWT + Google OAuth · Stripe · Nodemailer + Handlebars
 
-**Current state:** Weekends 1–3 complete — 47 endpoints across auth, users, organizations, memberships, invitations, programs, enrollments, and messages.
+**Current state:** Weekends 1–4 complete — 50 endpoints across auth, users, organizations, memberships, invitations, programs, enrollments, messages, subscriptions, and payments. Stripe billing integrated.
 
 ---
 
@@ -51,7 +51,8 @@ FRONTEND_URL=http://localhost:3001
 GOOGLE_CLIENT_ID=
 
 STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
+STRIPE_WEBHOOK_SECRET=   # from: stripe listen --forward-to localhost:3000/api/webhooks/stripe
+STRIPE_PRO_PRICE_ID=     # create a Product + Price in Stripe dashboard
 ```
 
 ---
@@ -170,7 +171,27 @@ Protected endpoints require `Authorization: Bearer <accessToken>`. Access tokens
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/api/organizations/:slug/messages` | Yes | Send org-wide announcement (owner/admin/mentor) |
-| GET | `/api/organizations/:slug/messages` | Yes | List announcements with author info (all members) |
+| GET | `/api/organizations/:slug/messages` | Yes | List announcements with author info — paginated |
+
+### Subscriptions
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/organizations/:slug/subscriptions` | Yes | Get current subscription (owner/admin) |
+| POST | `/api/organizations/:slug/subscriptions/checkout` | Yes | Create Stripe checkout session — returns `{ url }` (owner only) |
+| POST | `/api/organizations/:slug/subscriptions/cancel` | Yes | Cancel active subscription immediately (owner only) |
+
+### Payments
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/organizations/:slug/payments` | Yes | Paginated payment history (owner/admin) |
+
+### Webhooks
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/webhooks/stripe` | **No** | Stripe event receiver — signature verified, do not call directly |
 
 ---
 

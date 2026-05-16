@@ -26,6 +26,20 @@ export class MembershipsRepository {
     });
   }
 
+  findAllByOrgPaginated(
+    organizationId: string,
+    page: number,
+    limit: number,
+  ): Promise<[Membership[], number]> {
+    return this.repo.findAndCount({
+      where: { organizationId },
+      relations: ['user'],
+      order: { joinedAt: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+  }
+
   findByIdAndOrg(
     id: string,
     organizationId: string,

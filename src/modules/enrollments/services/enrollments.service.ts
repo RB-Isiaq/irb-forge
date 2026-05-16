@@ -5,10 +5,12 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { EnrollmentsRepository } from '../repositories/enrollments.repository';
 import { ProgramsRepository } from '../../programs/repositories/programs.repository';
 import { UpdateEnrollmentStatusDto } from '../dto/update-enrollment-status.dto';
 import { Enrollment } from '../entities/enrollment.entity';
+import { Program } from '../../programs/entities/program.entity';
 import { MembershipRole } from '../../memberships/enums/membership-role.enum';
 import { ProgramStatus } from '../../programs/enums/program-status.enum';
 import { EnrollmentStatus } from '../enums/enrollment-status.enum';
@@ -18,6 +20,7 @@ export class EnrollmentsService {
   constructor(
     private readonly enrollmentsRepo: EnrollmentsRepository,
     private readonly programsRepo: ProgramsRepository,
+    private readonly dataSource: DataSource,
   ) {}
 
   async enroll(
@@ -30,29 +33,47 @@ export class EnrollmentsService {
       throw new ForbiddenException('Only members can enroll in programs');
     }
 
-    const program = await this.programsRepo.findOneByOrg(
-      programId,
-      organizationId,
-    );
-    if (!program) throw new NotFoundException('Program not found');
+    return this.dataSource.transaction(async (manager) => {
+      // Lock the program row to serialize concurrent enrollments
+      const program = await manager
+        .createQueryBuilder(Program, 'p')
+        .setLock('pessimistic_write')
+        .where('p.id = :id AND p.organizationId = :orgId', {
+          id: programId,
+          orgId: organizationId,
+        })
+        .getOne();
 
-    if (program.status !== ProgramStatus.ACTIVE) {
-      throw new BadRequestException('Cannot enroll in a non-active program');
-    }
+      if (!program) throw new NotFoundException('Program not found');
 
-    if (program.capacity !== null) {
-      const count = await this.enrollmentsRepo.countActive(programId);
-      if (count >= program.capacity) {
-        throw new ConflictException('Program has reached its capacity');
+      if (program.status !== ProgramStatus.ACTIVE) {
+        throw new BadRequestException('Cannot enroll in a non-active program');
       }
-    }
 
-    const existing = await this.enrollmentsRepo.findOne(userId, programId);
-    if (existing) {
-      throw new ConflictException('Already enrolled in this program');
-    }
+      if (program.capacity !== null) {
+        const count = await manager.count(Enrollment, {
+          where: { programId, status: EnrollmentStatus.ACTIVE },
+        });
+        if (count >= program.capacity) {
+          throw new ConflictException('Program has reached its capacity');
+        }
+      }
 
-    return this.enrollmentsRepo.enroll(userId, programId);
+      const existing = await manager.findOne(Enrollment, {
+        where: { userId, programId },
+      });
+      if (existing) {
+        throw new ConflictException('Already enrolled in this program');
+      }
+
+      return manager.save(
+        manager.create(Enrollment, {
+          userId,
+          programId,
+          enrolledAt: new Date(),
+        }),
+      );
+    });
   }
 
   async listByProgram(

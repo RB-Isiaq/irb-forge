@@ -9,6 +9,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DataSource } from 'typeorm';
 import { InvitationsService } from './invitations.service';
 import { InvitationsRepository } from '../repositories/invitations.repository';
+import { RedisService } from '../../../common/redis/redis.service';
 import { CreateInvitationDto } from '../dto/create-invitation.dto';
 import { Invitation } from '../entities/invitation.entity';
 import { InvitationStatus } from '../enums/invitation-status.enum';
@@ -116,6 +117,10 @@ describe('InvitationsService', () => {
         },
         { provide: DataSource, useValue: dataSource },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        {
+          provide: RedisService,
+          useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() },
+        },
       ],
     }).compile();
 

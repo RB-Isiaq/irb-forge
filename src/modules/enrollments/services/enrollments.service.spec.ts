@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { EnrollmentsService } from './enrollments.service';
 import { EnrollmentsRepository } from '../repositories/enrollments.repository';
 import { ProgramsRepository } from '../../programs/repositories/programs.repository';
@@ -21,13 +22,8 @@ const mockProgram = (overrides: Partial<Program> = {}): Program =>
     organizationId: 'org-uuid',
     createdById: 'mentor-uuid',
     name: 'Backend Fundamentals',
-    description: null,
     status: ProgramStatus.ACTIVE,
     capacity: 10,
-    startDate: null,
-    endDate: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
     ...overrides,
   }) as Program;
 
@@ -49,7 +45,31 @@ describe('EnrollmentsService', () => {
   let enrollRepo: jest.Mocked<EnrollmentsRepository>;
   let programRepo: jest.Mocked<ProgramsRepository>;
 
+  // Shared mock objects accessible across tests
+  let mockQB: { setLock: jest.Mock; where: jest.Mock; getOne: jest.Mock };
+  let mockManager: {
+    createQueryBuilder: jest.Mock;
+    count: jest.Mock;
+    findOne: jest.Mock;
+    save: jest.Mock;
+    create: jest.Mock;
+  };
+
   beforeEach(async () => {
+    mockQB = {
+      setLock: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(mockProgram()), // default: active program found
+    };
+
+    mockManager = {
+      createQueryBuilder: jest.fn().mockReturnValue(mockQB),
+      count: jest.fn().mockResolvedValue(0), // default: 0 active enrollments
+      findOne: jest.fn().mockResolvedValue(null), // default: not already enrolled
+      save: jest.fn().mockResolvedValue(mockEnrollment()),
+      create: jest.fn().mockReturnValue({}),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EnrollmentsService,
@@ -67,8 +87,17 @@ describe('EnrollmentsService', () => {
         },
         {
           provide: ProgramsRepository,
+          useValue: { findOneByOrg: jest.fn() },
+        },
+        {
+          provide: DataSource,
           useValue: {
-            findOneByOrg: jest.fn(),
+            transaction: jest
+              .fn()
+              .mockImplementation(
+                async (cb: (m: typeof mockManager) => Promise<unknown>) =>
+                  cb(mockManager),
+              ),
           },
         },
       ],
@@ -82,13 +111,6 @@ describe('EnrollmentsService', () => {
   // ─── enroll ───────────────────────────────────────────────────────────────
 
   describe('enroll', () => {
-    beforeEach(() => {
-      programRepo.findOneByOrg.mockResolvedValue(mockProgram());
-      enrollRepo.countActive.mockResolvedValue(0);
-      enrollRepo.findOne.mockResolvedValue(null);
-      enrollRepo.enroll.mockResolvedValue(mockEnrollment());
-    });
-
     it('enrolls a member successfully', async () => {
       await service.enroll(
         'member-uuid',
@@ -96,10 +118,7 @@ describe('EnrollmentsService', () => {
         'org-uuid',
         MembershipRole.MEMBER,
       );
-      expect(enrollRepo.enroll).toHaveBeenCalledWith(
-        'member-uuid',
-        'prog-uuid',
-      );
+      expect(mockManager.save).toHaveBeenCalled();
     });
 
     it('throws ForbiddenException for owner role', async () => {
@@ -136,7 +155,7 @@ describe('EnrollmentsService', () => {
     });
 
     it('throws NotFoundException when program does not exist', async () => {
-      programRepo.findOneByOrg.mockResolvedValue(null);
+      mockQB.getOne.mockResolvedValueOnce(null);
       await expect(
         service.enroll(
           'member-uuid',
@@ -148,7 +167,7 @@ describe('EnrollmentsService', () => {
     });
 
     it('throws BadRequestException when program is not active', async () => {
-      programRepo.findOneByOrg.mockResolvedValue(
+      mockQB.getOne.mockResolvedValueOnce(
         mockProgram({ status: ProgramStatus.DRAFT }),
       );
       await expect(
@@ -162,8 +181,8 @@ describe('EnrollmentsService', () => {
     });
 
     it('throws ConflictException when program is at capacity', async () => {
-      programRepo.findOneByOrg.mockResolvedValue(mockProgram({ capacity: 5 }));
-      enrollRepo.countActive.mockResolvedValue(5);
+      mockQB.getOne.mockResolvedValueOnce(mockProgram({ capacity: 5 }));
+      mockManager.count.mockResolvedValueOnce(5);
       await expect(
         service.enroll(
           'member-uuid',
@@ -175,7 +194,7 @@ describe('EnrollmentsService', () => {
     });
 
     it('throws ConflictException when already enrolled', async () => {
-      enrollRepo.findOne.mockResolvedValue(mockEnrollment());
+      mockManager.findOne.mockResolvedValueOnce(mockEnrollment());
       await expect(
         service.enroll(
           'member-uuid',
@@ -186,18 +205,16 @@ describe('EnrollmentsService', () => {
       ).rejects.toThrow(ConflictException);
     });
 
-    it('allows enrollment when program has null capacity (unlimited)', async () => {
-      programRepo.findOneByOrg.mockResolvedValue(
-        mockProgram({ capacity: null }),
-      );
+    it('skips capacity check when program has null capacity (unlimited)', async () => {
+      mockQB.getOne.mockResolvedValueOnce(mockProgram({ capacity: null }));
       await service.enroll(
         'member-uuid',
         'prog-uuid',
         'org-uuid',
         MembershipRole.MEMBER,
       );
-      expect(enrollRepo.countActive).not.toHaveBeenCalled();
-      expect(enrollRepo.enroll).toHaveBeenCalled();
+      expect(mockManager.count).not.toHaveBeenCalled();
+      expect(mockManager.save).toHaveBeenCalled();
     });
   });
 

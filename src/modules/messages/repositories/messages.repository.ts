@@ -26,4 +26,18 @@ export class MessagesRepository {
       order: { createdAt: 'DESC' },
     });
   }
+
+  findAllByOrgPaginated(
+    organizationId: string,
+    page: number,
+    limit: number,
+  ): Promise<[Message[], number]> {
+    return this.repo.findAndCount({
+      where: { organizationId },
+      relations: ['author'],
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+  }
 }

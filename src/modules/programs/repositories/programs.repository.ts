@@ -37,6 +37,19 @@ export class ProgramsRepository {
     });
   }
 
+  findAllByOrgPaginated(
+    organizationId: string,
+    page: number,
+    limit: number,
+  ): Promise<[Program[], number]> {
+    return this.repo.findAndCount({
+      where: { organizationId },
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+  }
+
   findOneByOrg(id: string, organizationId: string): Promise<Program | null> {
     return this.repo.findOne({ where: { id, organizationId } });
   }

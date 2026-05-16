@@ -5,10 +5,12 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { MembershipsService } from '../services/memberships.service';
 import { UpdateRoleDto } from '../dto/update-role.dto';
@@ -42,8 +44,12 @@ export class MembershipsController {
   @Get()
   @ResponseMessage('Members retrieved')
   @ApiOkWrappedResponse(MembershipResponseDto)
-  findAll(@CurrentOrg() org: Organization): Promise<Membership[]> {
-    return this.membershipsService.findAllByOrg(org.id);
+  findAll(@CurrentOrg() org: Organization, @Query() pagination: PaginationDto) {
+    return this.membershipsService.findAllByOrgPaginated(
+      org.id,
+      pagination.page,
+      pagination.limit,
+    );
   }
 
   @Get('me')
