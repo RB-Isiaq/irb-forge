@@ -3,6 +3,7 @@ import {
   ConflictException,
   UnauthorizedException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -19,6 +20,7 @@ import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly googleClient: OAuth2Client;
 
   constructor(
@@ -55,6 +57,7 @@ export class AuthService {
       verificationToken,
     });
 
+    this.logger.log(`User registered: ${user.email}`);
     // Reload via SELECT so select:false fields are excluded from the response
     const safeUser = await this.usersService.findById(user.id);
     return { user: safeUser, ...tokens };
@@ -182,6 +185,7 @@ export class AuthService {
     const tokens = await this.generateTokens(user.id, user.email);
     await this.storeRefreshToken(user.id, tokens.refreshToken);
 
+    this.logger.log(`User logged in: ${user.email}`);
     return tokens;
   }
 
@@ -208,6 +212,8 @@ export class AuthService {
         await this.redisService.set(`blacklist:${jti}`, '1', remaining);
       }
     }
+
+    this.logger.log(`User logged out: ${userId}`);
   }
 
   async forgotPassword(email: string) {
