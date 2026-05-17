@@ -158,7 +158,11 @@ export class EmailProcessor extends WorkerHost {
     this.registerPartials();
     const templatePath = path.join(this.resolveTemplatesDir(), `${name}.hbs`);
     const source = fs.readFileSync(templatePath, 'utf-8');
-    return handlebars.compile(source)(context);
+    // Inject logoUrl globally so every template's header partial can use it.
+    // Set LOGO_URL in .env to a publicly hosted PNG (2× resolution recommended).
+    // When unset the header falls back to the inline HTML table logo.
+    const logoUrl = this.config.get<string>('LOGO_URL', '');
+    return handlebars.compile(source)({ ...context, logoUrl });
   }
 
   private async send(to: string, subject: string, html: string): Promise<void> {

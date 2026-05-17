@@ -53,24 +53,30 @@ export class SubscriptionsService {
 
     let customerId = sub.stripeCustomerId;
     if (!customerId) {
-      const customer = await this.stripeProvider.client.customers.create({
-        email: owner.email,
-        name: org.name,
-        metadata: { organizationId: org.id, orgSlug: org.slug },
-      });
+      const customer = await this.stripeProvider.client.customers.create(
+        {
+          email: owner.email,
+          name: org.name,
+          metadata: { organizationId: org.id, orgSlug: org.slug },
+        },
+        { idempotencyKey: `customer-create-${org.id}` },
+      );
       customerId = customer.id;
       await this.subsRepo.updateCustomerId(sub.id, customerId);
     }
 
     const frontendUrl = this.config.getOrThrow<string>('frontendUrl');
-    const session = await this.stripeProvider.client.checkout.sessions.create({
-      customer: customerId,
-      mode: 'subscription',
-      line_items: [{ price: proPriceId, quantity: 1 }],
-      success_url: `${frontendUrl}/orgs/${org.slug}/settings?subscription=success`,
-      cancel_url: `${frontendUrl}/orgs/${org.slug}/settings?subscription=cancelled`,
-      metadata: { organizationId: org.id },
-    });
+    const session = await this.stripeProvider.client.checkout.sessions.create(
+      {
+        customer: customerId,
+        mode: 'subscription',
+        line_items: [{ price: proPriceId, quantity: 1 }],
+        success_url: `${frontendUrl}/orgs/${org.slug}/settings?subscription=success`,
+        cancel_url: `${frontendUrl}/orgs/${org.slug}/settings?subscription=cancelled`,
+        metadata: { organizationId: org.id },
+      },
+      { idempotencyKey: `checkout-${org.id}-${Date.now()}` },
+    );
 
     return { url: session.url };
   }
