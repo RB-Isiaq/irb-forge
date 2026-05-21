@@ -22,6 +22,7 @@ export const configuration = () => ({
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY,
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    proPriceId: process.env.STRIPE_PRO_PRICE_ID,
   },
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID,

@@ -1,4 +1,13 @@
-import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { MessagesService } from '../services/messages.service';
 import { CreateMessageDto } from '../dto/create-message.dto';
@@ -45,7 +54,15 @@ export class MessagesController {
   )
   @ResponseMessage('Messages retrieved')
   @ApiOkWrappedResponse(MessageResponseDto)
-  list(@Param('slug') _slug: string, @CurrentOrg() org: Organization) {
-    return this.messagesService.listByOrg(org.id);
+  list(
+    @Param('slug') _slug: string,
+    @CurrentOrg() org: Organization,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.messagesService.listByOrgPaginated(
+      org.id,
+      pagination.page,
+      pagination.limit,
+    );
   }
 }

@@ -5,6 +5,7 @@ export const EmailJobName = {
   RESET_PASSWORD: 'reset-password',
   WELCOME: 'welcome',
   INVITE: 'invite',
+  PAYMENT_CONFIRMATION: 'payment-confirmation',
 } as const;
 
 export type EmailJobName = (typeof EmailJobName)[keyof typeof EmailJobName];
@@ -33,8 +34,17 @@ export interface InviteJobData {
   declineUrl: string;
 }
 
+export interface PaymentConfirmationJobData {
+  to: string;
+  orgName: string;
+  amount: number;
+  currency: string;
+  date: string;
+}
+
 export type EmailJobData =
   | VerifyEmailJobData
   | ResetPasswordJobData
   | WelcomeJobData
-  | InviteJobData;
+  | InviteJobData
+  | PaymentConfirmationJobData;

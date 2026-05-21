@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ProgramsService } from './programs.service';
 import { ProgramsRepository } from '../repositories/programs.repository';
+import { RedisService } from '../../../common/redis/redis.service';
 import { Program } from '../entities/program.entity';
 import { ProgramStatus } from '../enums/program-status.enum';
 import { MembershipRole } from '../../memberships/enums/membership-role.enum';
@@ -39,6 +40,14 @@ describe('ProgramsService', () => {
             findOneByOrg: jest.fn(),
             update: jest.fn(),
             delete: jest.fn(),
+          },
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue(undefined),
+            del: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],

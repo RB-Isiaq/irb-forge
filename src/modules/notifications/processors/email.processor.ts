@@ -13,6 +13,7 @@ import {
   ResetPasswordJobData,
   WelcomeJobData,
   InviteJobData,
+  PaymentConfirmationJobData,
 } from '../queues/email.queue';
 
 @Processor(EMAIL_QUEUE)
@@ -48,6 +49,11 @@ export class EmailProcessor extends WorkerHost {
         break;
       case EmailJobName.INVITE:
         await this.handleInvite(job.data as InviteJobData);
+        break;
+      case EmailJobName.PAYMENT_CONFIRMATION:
+        await this.handlePaymentConfirmation(
+          job.data as PaymentConfirmationJobData,
+        );
         break;
       default:
         this.logger.warn(`Unknown email job: ${job.name}`);
@@ -93,6 +99,22 @@ export class EmailProcessor extends WorkerHost {
     );
   }
 
+  private async handlePaymentConfirmation(
+    data: PaymentConfirmationJobData,
+  ): Promise<void> {
+    const amountFormatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: data.currency.toUpperCase(),
+    }).format(data.amount / 100);
+
+    const html = this.renderTemplate('payment-confirmation', {
+      orgName: data.orgName,
+      amount: amountFormatted,
+      date: data.date,
+    });
+    await this.send(data.to, `Payment confirmed — IRB Forge Pro`, html);
+  }
+
   private resolveTemplatesDir(): string {
     const distDir = path.join(__dirname, '..', 'templates');
     if (fs.existsSync(distDir)) return distDir;
@@ -136,7 +158,11 @@ export class EmailProcessor extends WorkerHost {
     this.registerPartials();
     const templatePath = path.join(this.resolveTemplatesDir(), `${name}.hbs`);
     const source = fs.readFileSync(templatePath, 'utf-8');
-    return handlebars.compile(source)(context);
+    // Inject logoUrl globally so every template's header partial can use it.
+    // Set LOGO_URL in .env to a publicly hosted PNG (2× resolution recommended).
+    // When unset the header falls back to the inline HTML table logo.
+    const logoUrl = this.config.get<string>('LOGO_URL', '');
+    return handlebars.compile(source)({ ...context, logoUrl });
   }
 
   private async send(to: string, subject: string, html: string): Promise<void> {

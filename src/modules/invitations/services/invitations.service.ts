@@ -8,6 +8,7 @@ import * as crypto from 'crypto';
 import { DataSource } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InvitationsRepository } from '../repositories/invitations.repository';
+import { RedisService } from '../../../common/redis/redis.service';
 import { Invitation } from '../entities/invitation.entity';
 import { InvitationStatus } from '../enums/invitation-status.enum';
 import { Membership } from '../../memberships/entities/membership.entity';
@@ -25,6 +26,7 @@ export class InvitationsService {
     private readonly invitationsRepo: InvitationsRepository,
     private readonly dataSource: DataSource,
     private readonly eventEmitter: EventEmitter2,
+    private readonly redisService: RedisService,
   ) {}
 
   async invite(
@@ -152,6 +154,8 @@ export class InvitationsService {
         status: InvitationStatus.ACCEPTED,
       });
     });
+
+    await this.redisService.del(`cache:members:${invitation.organizationId}`);
   }
 
   async preview(rawToken: string): Promise<InvitationPreviewDto> {
@@ -227,6 +231,8 @@ export class InvitationsService {
         status: InvitationStatus.ACCEPTED,
       });
     });
+
+    await this.redisService.del(`cache:members:${invitation.organizationId}`);
   }
 
   async declineById(user: User, invitationId: string): Promise<void> {
