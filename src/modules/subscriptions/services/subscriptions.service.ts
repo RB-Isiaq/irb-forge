@@ -71,12 +71,16 @@ export class SubscriptionsService {
         customer: customerId,
         mode: 'subscription',
         line_items: [{ price: proPriceId, quantity: 1 }],
-        success_url: `${frontendUrl}/orgs/${org.slug}/settings?subscription=success`,
-        cancel_url: `${frontendUrl}/orgs/${org.slug}/settings?subscription=cancelled`,
+        success_url: `${frontendUrl}/orgs/${org.slug}/billing?subscription=success`,
+        cancel_url: `${frontendUrl}/orgs/${org.slug}/billing?subscription=cancelled`,
         metadata: { organizationId: org.id },
       },
       { idempotencyKey: `checkout-${org.id}-${Date.now()}` },
     );
+
+    if (!session.url) {
+      throw new BadRequestException('Stripe did not return a checkout URL');
+    }
 
     return { url: session.url };
   }
@@ -98,7 +102,7 @@ export class SubscriptionsService {
     organizationId: string,
     stripeCustomerId: string,
     stripeSubscriptionId: string,
-    currentPeriodEnd: Date,
+    currentPeriodEnd: Date | null,
   ): Promise<void> {
     await this.subsRepo.activate(
       organizationId,

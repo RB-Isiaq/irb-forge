@@ -69,7 +69,7 @@ npm run lint          # ESLint auto-fix
 npm run seed          # seed dev database (idempotent — wipes and recreates)
 ```
 
-Seed credentials: `owner/admin/mentor/member/member2@irb-seed.dev`, password `Password1`.
+Seed credentials (password `Password1`): `superadmin` (platform super_admin), `owner`, `admin`, `mentor`, `member`, `member2` — all at `@irb-seed.dev`.
 
 ---
 

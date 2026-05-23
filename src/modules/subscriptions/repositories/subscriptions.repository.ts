@@ -43,7 +43,7 @@ export class SubscriptionsRepository {
     organizationId: string,
     stripeCustomerId: string,
     stripeSubscriptionId: string,
-    currentPeriodEnd: Date,
+    currentPeriodEnd: Date | null,
   ): Promise<void> {
     await this.repo.upsert(
       {
@@ -63,9 +63,14 @@ export class SubscriptionsRepository {
     status: SubscriptionStatus,
     currentPeriodEnd?: Date,
   ): Promise<void> {
+    const plan =
+      status === SubscriptionStatus.ACTIVE
+        ? SubscriptionPlan.PRO
+        : SubscriptionPlan.FREE;
+
     await this.repo.update(
       { stripeSubscriptionId },
-      { status, ...(currentPeriodEnd && { currentPeriodEnd }) },
+      { status, plan, ...(currentPeriodEnd && { currentPeriodEnd }) },
     );
   }
 

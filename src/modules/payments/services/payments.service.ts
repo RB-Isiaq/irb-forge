@@ -74,6 +74,7 @@ export class PaymentsService {
       case 'checkout.session.completed':
         await this.handleCheckoutCompleted(event.data.object, event.id);
         break;
+      case 'customer.subscription.created':
       case 'customer.subscription.updated':
         await this.handleSubscriptionUpdated(event.data.object);
         break;
@@ -95,24 +96,41 @@ export class PaymentsService {
     const s = session as unknown as Record<string, unknown>;
     const organizationId = (s['metadata'] as Record<string, string> | null)
       ?.organizationId;
+
+    this.logger.log(
+      `handleCheckoutCompleted: eventId=${eventId} orgId=${organizationId ?? 'MISSING'}`,
+    );
+
     if (!organizationId) return;
 
     const existing = await this.paymentsRepo.findByEventId(eventId);
-    if (existing) return;
+    if (existing) {
+      this.logger.log(`Duplicate event skipped: ${eventId}`);
+      return;
+    }
 
-    const stripeSubscriptionId = (s['subscription'] as string | null) ?? '';
+    const stripeSubscriptionId =
+      typeof s['subscription'] === 'string' ? s['subscription'] : '';
     let currentPeriodEnd = new Date();
+
+    this.logger.log(`stripeSubscriptionId: "${stripeSubscriptionId}"`);
 
     if (stripeSubscriptionId) {
       const stripeSub =
         await this.stripeProvider.client.subscriptions.retrieve(
           stripeSubscriptionId,
         );
-      currentPeriodEnd = new Date(
-        (stripeSub as unknown as { current_period_end: number })
-          .current_period_end * 1000,
-      );
+      const periodEnd = (stripeSub as unknown as { current_period_end: number })
+        .current_period_end;
+      this.logger.log(`current_period_end raw value: ${String(periodEnd)}`);
+      if (typeof periodEnd === 'number' && Number.isFinite(periodEnd)) {
+        currentPeriodEnd = new Date(periodEnd * 1000);
+      }
     }
+
+    this.logger.log(
+      `Activating subscription for org ${organizationId}, stripeSubId: ${stripeSubscriptionId}`,
+    );
 
     await this.subscriptionsService.activate(
       organizationId,
@@ -120,6 +138,8 @@ export class PaymentsService {
       stripeSubscriptionId,
       currentPeriodEnd,
     );
+
+    this.logger.log(`Subscription activated for org ${organizationId}`);
 
     const payment = await this.paymentsRepo.record({
       organizationId,
@@ -141,6 +161,10 @@ export class PaymentsService {
     stripeSub: StripeSubscription,
   ): Promise<void> {
     const sub = stripeSub as unknown as Record<string, unknown>;
+    this.logger.log(`subscription event keys: ${Object.keys(sub).join(', ')}`);
+    this.logger.log(
+      `current_period_end raw: ${String(sub['current_period_end'] as number)}`,
+    );
     const statusMap: Record<string, SubscriptionStatus> = {
       active: SubscriptionStatus.ACTIVE,
       past_due: SubscriptionStatus.PAST_DUE,
@@ -150,9 +174,11 @@ export class PaymentsService {
 
     const rawStatus = sub['status'] as string;
     const status = statusMap[rawStatus] ?? SubscriptionStatus.ACTIVE;
-    const currentPeriodEnd = new Date(
-      (sub['current_period_end'] as number) * 1000,
-    );
+    const rawPeriodEnd = sub['current_period_end'] as number | undefined;
+    const currentPeriodEnd =
+      typeof rawPeriodEnd === 'number' && Number.isFinite(rawPeriodEnd)
+        ? new Date(rawPeriodEnd * 1000)
+        : undefined;
 
     await this.subscriptionsService.updateStatus(
       sub['id'] as string,
