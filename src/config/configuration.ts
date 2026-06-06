@@ -16,6 +16,9 @@ export const configuration = () => ({
   mail: {
     resendApiKey: process.env.RESEND_API_KEY,
     from: process.env.MAIL_FROM ?? 'IRB Forge <noreply@irb-forge.com>',
+    // Set to true only on platforms with persistent processes (Railway, Render, Fly.io).
+    // Leave false (default) on serverless platforms like Vercel.
+    queueEnabled: process.env.EMAIL_QUEUE_ENABLED === 'true',
   },
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY,
