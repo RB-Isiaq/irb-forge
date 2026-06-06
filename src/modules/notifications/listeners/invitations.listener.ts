@@ -26,20 +26,23 @@ export class InvitationsListener {
     payload: InvitationCreatedEvent,
   ): Promise<void> {
     this.logger.log(
-      `Queuing invite email to ${payload.email} for org ${payload.orgName}`,
+      `Sending invite email to ${payload.email} for org ${payload.orgName}`,
     );
+    try {
+      const frontendUrl = this.config.getOrThrow<string>('frontendUrl');
+      const acceptUrl = `${frontendUrl}/invitations/accept?token=${payload.rawToken}`;
+      const declineUrl = `${frontendUrl}/invitations/decline?token=${payload.rawToken}`;
 
-    const frontendUrl = this.config.getOrThrow<string>('frontendUrl');
-    const acceptUrl = `${frontendUrl}/invitations/accept?token=${payload.rawToken}`;
-    const declineUrl = `${frontendUrl}/invitations/decline?token=${payload.rawToken}`;
-
-    await this.notificationsService.sendInviteEmail(
-      payload.email,
-      payload.orgName,
-      payload.inviterName,
-      payload.role,
-      acceptUrl,
-      declineUrl,
-    );
+      await this.notificationsService.sendInviteEmail(
+        payload.email,
+        payload.orgName,
+        payload.inviterName,
+        payload.role,
+        acceptUrl,
+        declineUrl,
+      );
+    } catch (err) {
+      this.logger.error(`Failed to send invite email to ${payload.email}`, err);
+    }
   }
 }

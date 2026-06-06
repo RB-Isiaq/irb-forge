@@ -30,37 +30,56 @@ export class AuthListener {
 
   @OnEvent('auth.registered', { async: true })
   async handleRegistered(payload: AuthRegisteredEvent): Promise<void> {
-    this.logger.log(
-      `Queuing verification + welcome email for ${payload.email}`,
-    );
-    await Promise.all([
-      this.notificationsService.sendWelcomeEmail(payload.email, null),
-      this.notificationsService.sendVerificationEmail(
-        payload.email,
-        payload.verificationToken,
-      ),
-    ]);
+    this.logger.log(`Sending verification + welcome email to ${payload.email}`);
+    try {
+      await Promise.all([
+        this.notificationsService.sendWelcomeEmail(payload.email, null),
+        this.notificationsService.sendVerificationEmail(
+          payload.email,
+          payload.verificationToken,
+        ),
+      ]);
+    } catch (err) {
+      this.logger.error(
+        `Failed to send registration emails to ${payload.email}`,
+        err,
+      );
+    }
   }
 
   @OnEvent('auth.verificationResent', { async: true })
   async handleVerificationResent(
     payload: AuthVerificationResentEvent,
   ): Promise<void> {
-    this.logger.log(`Queuing resend verification email for ${payload.email}`);
-    await this.notificationsService.sendVerificationEmail(
-      payload.email,
-      payload.verificationToken,
-    );
+    this.logger.log(`Sending resend verification email to ${payload.email}`);
+    try {
+      await this.notificationsService.sendVerificationEmail(
+        payload.email,
+        payload.verificationToken,
+      );
+    } catch (err) {
+      this.logger.error(
+        `Failed to resend verification to ${payload.email}`,
+        err,
+      );
+    }
   }
 
   @OnEvent('auth.forgotPassword', { async: true })
   async handleForgotPassword(payload: AuthForgotPasswordEvent): Promise<void> {
-    this.logger.log(`Queuing password reset email for ${payload.email}`);
-    const frontendUrl = this.config.getOrThrow<string>('frontendUrl');
-    const resetUrl = `${frontendUrl}/reset-password?token=${payload.token}`;
-    await this.notificationsService.sendPasswordResetEmail(
-      payload.email,
-      resetUrl,
-    );
+    this.logger.log(`Sending password reset email to ${payload.email}`);
+    try {
+      const frontendUrl = this.config.getOrThrow<string>('frontendUrl');
+      const resetUrl = `${frontendUrl}/reset-password?token=${payload.token}`;
+      await this.notificationsService.sendPasswordResetEmail(
+        payload.email,
+        resetUrl,
+      );
+    } catch (err) {
+      this.logger.error(
+        `Failed to send password reset to ${payload.email}`,
+        err,
+      );
+    }
   }
 }
