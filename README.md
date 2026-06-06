@@ -41,6 +41,10 @@ REDIS_URL=redis://localhost:6379
 RESEND_API_KEY=re_xxxxxxxxxxxx
 MAIL_FROM=IRB Forge <noreply@yourdomain.com>
 
+# false = direct Resend API (works on Vercel / serverless)
+# true  = BullMQ queue (requires persistent process: Railway, Render, Fly.io)
+EMAIL_QUEUE_ENABLED=false
+
 FRONTEND_URL=http://localhost:3001
 
 # CORS — comma-separated. Defaults to FRONTEND_URL if not set.
@@ -228,7 +232,7 @@ Domain-driven modules. Strict layering — controllers handle HTTP only, service
 Controller → Service → Repository → Database
 ```
 
-Side effects (emails, notifications) are always async via event emitter → BullMQ queue → processor. A failed email never fails the request.
+Side effects (emails, notifications) are dispatched via event emitter and delivered through Resend. Two modes controlled by `EMAIL_QUEUE_ENABLED`: direct API call (default, works on serverless) or BullMQ queue with retry (for persistent-process platforms). A failed email never fails the request.
 
 ---
 
