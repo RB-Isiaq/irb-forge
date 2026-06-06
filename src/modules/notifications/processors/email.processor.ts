@@ -2,7 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import * as handlebars from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -19,19 +19,12 @@ import {
 @Processor(EMAIL_QUEUE)
 export class EmailProcessor extends WorkerHost {
   private readonly logger = new Logger(EmailProcessor.name);
-  private readonly transporter: nodemailer.Transporter;
+  private readonly resend: Resend;
   private partialsRegistered = false;
 
   constructor(private readonly config: ConfigService) {
     super();
-    this.transporter = nodemailer.createTransport({
-      host: config.getOrThrow<string>('mail.host'),
-      port: config.getOrThrow<number>('mail.port'),
-      auth: {
-        user: config.getOrThrow<string>('mail.user'),
-        pass: config.getOrThrow<string>('mail.pass'),
-      },
-    });
+    this.resend = new Resend(config.getOrThrow<string>('mail.resendApiKey'));
   }
 
   async process(job: Job): Promise<void> {
@@ -166,12 +159,14 @@ export class EmailProcessor extends WorkerHost {
   }
 
   private async send(to: string, subject: string, html: string): Promise<void> {
-    await this.transporter.sendMail({
-      from: `"IRB Forge" <${this.config.getOrThrow<string>('mail.user')}>`,
-      to,
+    const from = this.config.getOrThrow<string>('mail.from');
+    const { error } = await this.resend.emails.send({
+      from,
+      to: [to],
       subject,
       html,
     });
+    if (error) throw new Error(`Resend error: ${error.message}`);
     this.logger.log(`Email sent to ${to}: ${subject}`);
   }
 }

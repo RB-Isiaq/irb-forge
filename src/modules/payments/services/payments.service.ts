@@ -120,9 +120,9 @@ export class PaymentsService {
         await this.stripeProvider.client.subscriptions.retrieve(
           stripeSubscriptionId,
         );
-      const periodEnd = (stripeSub as unknown as { current_period_end: number })
-        .current_period_end;
-      this.logger.log(`current_period_end raw value: ${String(periodEnd)}`);
+      // Stripe API dahlia: current_period_end moved to items.data[0]
+      const periodEnd = stripeSub.items.data[0]?.current_period_end;
+      this.logger.log(`current_period_end from item: ${String(periodEnd)}`);
       if (typeof periodEnd === 'number' && Number.isFinite(periodEnd)) {
         currentPeriodEnd = new Date(periodEnd * 1000);
       }
@@ -161,10 +161,6 @@ export class PaymentsService {
     stripeSub: StripeSubscription,
   ): Promise<void> {
     const sub = stripeSub as unknown as Record<string, unknown>;
-    this.logger.log(`subscription event keys: ${Object.keys(sub).join(', ')}`);
-    this.logger.log(
-      `current_period_end raw: ${String(sub['current_period_end'] as number)}`,
-    );
     const statusMap: Record<string, SubscriptionStatus> = {
       active: SubscriptionStatus.ACTIVE,
       past_due: SubscriptionStatus.PAST_DUE,
@@ -174,7 +170,14 @@ export class PaymentsService {
 
     const rawStatus = sub['status'] as string;
     const status = statusMap[rawStatus] ?? SubscriptionStatus.ACTIVE;
-    const rawPeriodEnd = sub['current_period_end'] as number | undefined;
+    // Stripe API dahlia: current_period_end moved to items.data[0]
+    const items = sub['items'] as
+      | { data: Array<{ current_period_end?: number }> }
+      | undefined;
+    const rawPeriodEnd = items?.data?.[0]?.current_period_end;
+    this.logger.log(
+      `subscription updated: status=${rawStatus} periodEnd=${String(rawPeriodEnd)}`,
+    );
     const currentPeriodEnd =
       typeof rawPeriodEnd === 'number' && Number.isFinite(rawPeriodEnd)
         ? new Date(rawPeriodEnd * 1000)

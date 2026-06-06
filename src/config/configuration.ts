@@ -14,10 +14,8 @@ export const configuration = () => ({
     url: process.env.REDIS_URL,
   },
   mail: {
-    host: process.env.MAIL_HOST,
-    port: parseInt(process.env.MAIL_PORT ?? '587', 10),
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
+    resendApiKey: process.env.RESEND_API_KEY,
+    from: process.env.MAIL_FROM ?? 'IRB Forge <noreply@irb-forge.com>',
   },
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY,
