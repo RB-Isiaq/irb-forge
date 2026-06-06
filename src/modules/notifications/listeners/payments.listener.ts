@@ -40,12 +40,19 @@ export class PaymentsListener {
       return;
     }
 
-    this.logger.log(`Queuing payment confirmation email to ${owner.email}`);
-    await this.notificationsService.sendPaymentConfirmationEmail(
-      owner.email,
-      org.name,
-      event.amount,
-      event.currency,
-    );
+    this.logger.log(`Sending payment confirmation email to ${owner.email}`);
+    try {
+      await this.notificationsService.sendPaymentConfirmationEmail(
+        owner.email,
+        org.name,
+        event.amount,
+        event.currency,
+      );
+    } catch (err) {
+      this.logger.error(
+        `Failed to send payment confirmation to ${owner.email}`,
+        err,
+      );
+    }
   }
 }
