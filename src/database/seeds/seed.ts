@@ -59,6 +59,19 @@ async function seed() {
   const hash = await bcrypt.hash(PASSWORD, 10);
   const userRepo = ds.getRepository(User);
 
+  // Super admin — platform-level account, not a member of any org
+  await userRepo.save(
+    userRepo.create({
+      email: `superadmin${SEED_DOMAIN}`,
+      password: hash,
+      firstName: 'Super',
+      lastName: 'Admin',
+      isVerified: true,
+      role: UserRole.SUPER_ADMIN,
+    }),
+  );
+  console.log('✅  Super admin created');
+
   const [owner, admin, mentor, member, member2] = await userRepo.save([
     userRepo.create({
       email: `owner${SEED_DOMAIN}`,
@@ -250,11 +263,12 @@ async function seed() {
    dev-mentors   Dev Mentors  (2 members)
 
  Credentials  (password: ${PASSWORD})
-   owner${SEED_DOMAIN}    owner of both orgs
-   admin${SEED_DOMAIN}    admin  in IRB Academy
-   mentor${SEED_DOMAIN}   mentor in IRB Academy
-   member${SEED_DOMAIN}   member in both orgs
-   member2${SEED_DOMAIN}  member in IRB Academy
+   superadmin${SEED_DOMAIN}  super_admin (no org)
+   owner${SEED_DOMAIN}       owner of both orgs
+   admin${SEED_DOMAIN}       admin  in IRB Academy
+   mentor${SEED_DOMAIN}      mentor in IRB Academy
+   member${SEED_DOMAIN}      member in both orgs
+   member2${SEED_DOMAIN}     member in IRB Academy
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `);
 

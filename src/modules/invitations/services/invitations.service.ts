@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { DataSource } from 'typeorm';
@@ -22,6 +23,8 @@ const INVITE_EXPIRY_DAYS = 7;
 
 @Injectable()
 export class InvitationsService {
+  private readonly logger = new Logger(InvitationsService.name);
+
   constructor(
     private readonly invitationsRepo: InvitationsRepository,
     private readonly dataSource: DataSource,
@@ -156,6 +159,9 @@ export class InvitationsService {
     });
 
     await this.redisService.del(`cache:members:${invitation.organizationId}`);
+    this.logger.log(
+      `Invitation accepted via token: user ${user.email} joined org ${invitation.organizationId}`,
+    );
   }
 
   async preview(rawToken: string): Promise<InvitationPreviewDto> {
@@ -233,6 +239,9 @@ export class InvitationsService {
     });
 
     await this.redisService.del(`cache:members:${invitation.organizationId}`);
+    this.logger.log(
+      `Invitation accepted by ID: user ${user.email} joined org ${invitation.organizationId}`,
+    );
   }
 
   async declineById(user: User, invitationId: string): Promise<void> {

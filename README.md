@@ -2,7 +2,7 @@
 
 A multi-tenant SaaS API for mentorship communities. Organizations manage members with role-based access, run cohort programs, send email invitations, and monetize via subscriptions.
 
-**Stack:** NestJS · PostgreSQL · Redis + BullMQ · JWT + Google OAuth · Stripe · Nodemailer + Handlebars
+**Stack:** NestJS · PostgreSQL · Redis + BullMQ · JWT + Google OAuth · Stripe · Resend + Handlebars
 
 **Current state:** Weekends 1–4 complete — 50 endpoints across auth, users, organizations, memberships, invitations, programs, enrollments, messages, subscriptions, and payments. Stripe billing integrated.
 
@@ -38,10 +38,8 @@ JWT_REFRESH_EXPIRES_IN=7d
 
 REDIS_URL=redis://localhost:6379
 
-MAIL_HOST=sandbox.smtp.mailtrap.io
-MAIL_PORT=2525
-MAIL_USER=
-MAIL_PASS=
+RESEND_API_KEY=re_xxxxxxxxxxxx
+MAIL_FROM=IRB Forge <noreply@yourdomain.com>
 
 FRONTEND_URL=http://localhost:3001
 
@@ -69,7 +67,7 @@ npm run lint          # ESLint auto-fix
 npm run seed          # seed dev database (idempotent — wipes and recreates)
 ```
 
-Seed credentials: `owner/admin/mentor/member/member2@irb-seed.dev`, password `Password1`.
+Seed credentials (password `Password1`): `superadmin` (platform super_admin), `owner`, `admin`, `mentor`, `member`, `member2` — all at `@irb-seed.dev`.
 
 ---
 

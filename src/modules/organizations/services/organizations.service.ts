@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   ConflictException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { OrganizationsRepository } from '../repositories/organizations.repository';
@@ -15,6 +16,8 @@ import { UpdateOrganizationDto } from '../dto/update-organization.dto';
 
 @Injectable()
 export class OrganizationsService {
+  private readonly logger = new Logger(OrganizationsService.name);
+
   constructor(
     private readonly orgsRepo: OrganizationsRepository,
     private readonly usersService: UsersService,
@@ -57,6 +60,7 @@ export class OrganizationsService {
         }),
       );
 
+      this.logger.log(`Org created: ${org.slug} by user ${userId}`);
       return org;
     });
   }
@@ -104,6 +108,7 @@ export class OrganizationsService {
       );
     }
     await this.orgsRepo.delete(org.id);
+    this.logger.warn(`Org deleted: ${org.slug} by user ${userId}`);
   }
 
   async getOrThrow(slug: string): Promise<Organization> {

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { MembershipsRepository } from '../repositories/memberships.repository';
 import { PaginatedResponseDto } from '../../../common/dto/paginated-response.dto';
@@ -16,6 +17,8 @@ const MEMBERS_CACHE_TTL = 30;
 
 @Injectable()
 export class MembershipsService {
+  private readonly logger = new Logger(MembershipsService.name);
+
   constructor(
     private readonly membershipsRepo: MembershipsRepository,
     private readonly redisService: RedisService,
@@ -85,6 +88,9 @@ export class MembershipsService {
 
     await this.membershipsRepo.updateRole(target.id, dto.role);
     await this.invalidateMembersCache(org.id);
+    this.logger.log(
+      `Role updated: user ${targetUserId} → ${dto.role} in org ${org.slug}`,
+    );
     return { ...target, role: dto.role };
   }
 
@@ -109,6 +115,9 @@ export class MembershipsService {
 
     await this.membershipsRepo.delete(target.id);
     await this.invalidateMembersCache(org.id);
+    this.logger.warn(
+      `Member removed: user ${targetUserId} from org ${org.slug}`,
+    );
   }
 
   async leave(org: Organization, userId: string): Promise<void> {
@@ -125,5 +134,6 @@ export class MembershipsService {
 
     await this.membershipsRepo.delete(membership.id);
     await this.invalidateMembersCache(org.id);
+    this.logger.log(`User ${userId} left org ${org.slug}`);
   }
 }
