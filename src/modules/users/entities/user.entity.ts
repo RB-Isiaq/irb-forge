@@ -33,6 +33,9 @@ export class User {
   @Column({ nullable: true, unique: true })
   googleId: string | null;
 
+  @Column({ nullable: true })
+  pushToken: string | null;
+
   @Column({ nullable: true, select: false })
   refreshToken: string | null;
 

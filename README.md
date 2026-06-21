@@ -69,9 +69,23 @@ npm run test          # unit tests
 npm run lint:check    # ESLint check (used in CI)
 npm run lint          # ESLint auto-fix
 npm run seed          # seed dev database (idempotent — wipes and recreates)
+
+npm run migration:generate -- src/database/migrations/<Name>  # diff entities vs DB, write a migration
+npm run migration:run        # apply pending migrations
+npm run migration:revert     # roll back the last migration
+npm run migration:show       # list applied/pending migrations
 ```
 
 Seed credentials (password `Password1`): `superadmin` (platform super_admin), `owner`, `admin`, `mentor`, `member`, `member2` — all at `@irb-seed.dev`.
+
+### Schema changes & migrations
+
+`synchronize` is only enabled when `NODE_ENV=development`, so local schema changes apply automatically on app start. Production (and any other environment) requires an explicit migration:
+
+1. Change the entity locally and let `synchronize` apply it to your dev DB.
+2. Run `npm run migration:generate -- src/database/migrations/<DescriptiveName>` — it diffs entities against the DB pointed to by `DATABASE_URL` and writes the exact SQL.
+3. Commit the generated migration file.
+4. Against production, point `DATABASE_URL` at the prod database and run `npm run migration:run` (there is no CI/CD step that does this automatically yet — it's a manual step after deploying schema changes).
 
 ---
 

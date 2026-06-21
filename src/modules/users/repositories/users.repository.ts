@@ -119,6 +119,10 @@ export class UsersRepository {
     });
   }
 
+  async updatePushToken(id: string, pushToken: string): Promise<void> {
+    await this.repo.update(id, { pushToken });
+  }
+
   async updatePassword(id: string, hashedPassword: string): Promise<void> {
     await this.repo.update(id, {
       password: hashedPassword,
