@@ -73,6 +73,10 @@ export class UsersService {
     return this.usersRepository.setPasswordReset(id, tokenHash, expiry);
   }
 
+  updatePushToken(id: string, token: string): Promise<void> {
+    return this.usersRepository.updatePushToken(id, token);
+  }
+
   updatePassword(id: string, hashedPassword: string): Promise<void> {
     return this.usersRepository.updatePassword(id, hashedPassword);
   }
