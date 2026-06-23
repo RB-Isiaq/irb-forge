@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MessagesRepository } from '../repositories/messages.repository';
 import { PaginatedResponseDto } from '../../../common/dto/paginated-response.dto';
 import { CreateMessageDto } from '../dto/create-message.dto';
@@ -6,14 +7,27 @@ import { Message } from '../entities/message.entity';
 
 @Injectable()
 export class MessagesService {
-  constructor(private readonly messagesRepo: MessagesRepository) {}
+  constructor(
+    private readonly messagesRepo: MessagesRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
-  create(
+  async create(
     organizationId: string,
     authorId: string,
     dto: CreateMessageDto,
   ): Promise<Message> {
-    return this.messagesRepo.create(organizationId, authorId, dto.content);
+    const message = await this.messagesRepo.create(
+      organizationId,
+      authorId,
+      dto.content,
+    );
+    this.eventEmitter.emit('message.created', {
+      organizationId,
+      authorId,
+      content: dto.content,
+    });
+    return message;
   }
 
   listByOrg(organizationId: string): Promise<Message[]> {

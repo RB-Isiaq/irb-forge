@@ -132,6 +132,7 @@ Protected endpoints require `Authorization: Bearer <accessToken>`. Access tokens
 |--------|----------|------|-------------|
 | GET | `/api/users/me` | Yes | Get current user profile |
 | PATCH | `/api/users/me` | Yes | Update name fields |
+| POST | `/api/users/me/push-token` | Yes | Save Expo push token for mobile push notifications |
 
 ### Organizations
 
@@ -246,7 +247,7 @@ Domain-driven modules. Strict layering — controllers handle HTTP only, service
 Controller → Service → Repository → Database
 ```
 
-Side effects (emails, notifications) are dispatched via event emitter and delivered through Resend. Two modes controlled by `EMAIL_QUEUE_ENABLED`: direct API call (default, works on serverless) or BullMQ queue with retry (for persistent-process platforms). A failed email never fails the request.
+Side effects (emails, push notifications) are dispatched via event emitter. Emails are delivered through Resend, with two modes controlled by `EMAIL_QUEUE_ENABLED`: direct API call (default, works on serverless) or BullMQ queue with retry (for persistent-process platforms). New org messages also trigger Expo push notifications to other members with a registered push token (stale tokens are cleared automatically). A failed email or push never fails the request.
 
 ---
 
