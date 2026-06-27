@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { MembershipsRepository } from '../repositories/memberships.repository';
 import { PaginatedResponseDto } from '../../../common/dto/paginated-response.dto';
 import { RedisService } from '../../../common/redis/redis.service';
@@ -12,6 +13,7 @@ import { Membership } from '../entities/membership.entity';
 import { MembershipRole } from '../enums/membership-role.enum';
 import { UpdateRoleDto } from '../dto/update-role.dto';
 import { Organization } from '../../organizations/entities/organization.entity';
+import { ChannelMember } from '../../channels/entities/channel-member.entity';
 
 const MEMBERS_CACHE_TTL = 30;
 
@@ -22,6 +24,7 @@ export class MembershipsService {
   constructor(
     private readonly membershipsRepo: MembershipsRepository,
     private readonly redisService: RedisService,
+    private readonly dataSource: DataSource,
   ) {}
 
   private membersCacheKey(orgId: string) {
@@ -114,6 +117,7 @@ export class MembershipsService {
     }
 
     await this.membershipsRepo.delete(target.id);
+    await this.removeFromChannels(targetUserId, org.id);
     await this.invalidateMembersCache(org.id);
     this.logger.warn(
       `Member removed: user ${targetUserId} from org ${org.slug}`,
@@ -133,7 +137,17 @@ export class MembershipsService {
     }
 
     await this.membershipsRepo.delete(membership.id);
+    await this.removeFromChannels(userId, org.id);
     await this.invalidateMembersCache(org.id);
     this.logger.log(`User ${userId} left org ${org.slug}`);
+  }
+
+  private async removeFromChannels(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await this.dataSource
+      .getRepository(ChannelMember)
+      .delete({ userId, organizationId });
   }
 }

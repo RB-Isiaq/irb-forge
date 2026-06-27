@@ -10,6 +10,8 @@ import { OrganizationsRepository } from '../repositories/organizations.repositor
 import { Organization } from '../entities/organization.entity';
 import { Membership } from '../../memberships/entities/membership.entity';
 import { MembershipRole } from '../../memberships/enums/membership-role.enum';
+import { Channel } from '../../channels/entities/channel.entity';
+import { ChannelMember } from '../../channels/entities/channel-member.entity';
 import { UsersService } from '../../users/services/users.service';
 import { CreateOrganizationDto } from '../dto/create-organization.dto';
 import { UpdateOrganizationDto } from '../dto/update-organization.dto';
@@ -57,6 +59,23 @@ export class OrganizationsService {
           userId,
           organizationId: org.id,
           role: MembershipRole.OWNER,
+        }),
+      );
+
+      const defaultChannel = await manager.save(
+        manager.create(Channel, {
+          organizationId: org.id,
+          name: 'general',
+          isDefault: true,
+          createdById: userId,
+        }),
+      );
+
+      await manager.save(
+        manager.create(ChannelMember, {
+          channelId: defaultChannel.id,
+          organizationId: org.id,
+          userId,
         }),
       );
 

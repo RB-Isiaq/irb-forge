@@ -18,6 +18,7 @@ import { EnrollmentsModule } from './modules/enrollments';
 import { SubscriptionsModule } from './modules/subscriptions';
 import { PaymentsModule } from './modules/payments';
 import { MessagesModule } from './modules/messages';
+import { ChannelsModule } from './modules/channels';
 import { NotificationsModule } from './modules/notifications';
 
 @Module({
@@ -52,6 +53,7 @@ import { NotificationsModule } from './modules/notifications';
     SubscriptionsModule,
     PaymentsModule,
     MessagesModule,
+    ChannelsModule,
     NotificationsModule,
   ],
   controllers: [AppController],

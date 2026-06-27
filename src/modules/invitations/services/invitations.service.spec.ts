@@ -84,12 +84,14 @@ describe('InvitationsService', () => {
               save: jest.Mock;
               create: jest.Mock;
               update: jest.Mock;
+              findOne: jest.Mock;
             }) => Promise<void>,
           ) => {
             const manager = {
               save: jest.fn().mockResolvedValue({}),
               create: jest.fn().mockReturnValue({}),
               update: jest.fn().mockResolvedValue({}),
+              findOne: jest.fn().mockResolvedValue(null),
             };
             return cb(manager);
           },
