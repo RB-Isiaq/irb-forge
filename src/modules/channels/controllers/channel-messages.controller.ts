@@ -7,10 +7,10 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ChannelMessagesService } from '../services/channel-messages.service';
 import { SendChannelMessageDto } from '../dto/send-channel-message.dto';
+import { ListChannelMessagesDto } from '../dto/list-channel-messages.dto';
 import { ChannelMessageResponseDto } from '../dto/channel-message-response.dto';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { CurrentOrg } from '../../../common/decorators/current-org.decorator';
@@ -62,12 +62,12 @@ export class ChannelMessagesController {
     @Param('slug') _slug: string,
     @Param('channelId') _channelId: string,
     @CurrentChannel() channel: Channel,
-    @Query() pagination: PaginationDto,
+    @Query() query: ListChannelMessagesDto,
   ) {
-    return this.channelMessagesService.listByChannelPaginated(
+    return this.channelMessagesService.listByChannel(
       channel.id,
-      pagination.page,
-      pagination.limit,
+      query.before,
+      query.limit,
     );
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ChannelMessagesRepository } from '../repositories/channel-messages.repository';
-import { PaginatedResponseDto } from '../../../common/dto/paginated-response.dto';
+import { CursorPaginatedResponseDto } from '../../../common/dto/cursor-paginated-response.dto';
 import { SendChannelMessageDto } from '../dto/send-channel-message.dto';
 import { ChannelMessage } from '../entities/channel-message.entity';
 
@@ -34,17 +34,21 @@ export class ChannelMessagesService {
     return message;
   }
 
-  async listByChannelPaginated(
+  async listByChannel(
     channelId: string,
-    page: number,
+    before: string | undefined,
     limit: number,
-  ): Promise<PaginatedResponseDto<ChannelMessage>> {
-    const [items, total] =
-      await this.channelMessagesRepo.findAllByChannelPaginated(
-        channelId,
-        page,
-        limit,
-      );
-    return new PaginatedResponseDto(items, total, page, limit);
+  ): Promise<CursorPaginatedResponseDto<ChannelMessage>> {
+    const rows = await this.channelMessagesRepo.findPageByChannel(
+      channelId,
+      before ? new Date(before) : undefined,
+      limit,
+    );
+    const hasMore = rows.length > limit;
+    const items = hasMore ? rows.slice(0, limit) : rows;
+    const nextCursor = hasMore
+      ? items[items.length - 1].createdAt.toISOString()
+      : null;
+    return new CursorPaginatedResponseDto(items, nextCursor);
   }
 }
