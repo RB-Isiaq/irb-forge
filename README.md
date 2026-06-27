@@ -105,7 +105,7 @@ All endpoints are prefixed `/api`. Every response follows a consistent envelope:
 
 Protected endpoints require `Authorization: Bearer <accessToken>`. Access tokens expire in 15 minutes — use `POST /api/auth/refresh` to rotate.
 
-**Pagination** — all list endpoints accept `?page=1&limit=20` (default: page 1, 20 items). Paginated responses use the shape `{ items, total, page, limit, pages }`.
+**Pagination** — all list endpoints accept `?page=1&limit=20` (default: page 1, 20 items). Paginated responses use the shape `{ items, total, page, limit, pages }`. The one exception is channel messages, which use cursor pagination instead (`?before=&limit=`, response `{ items, nextCursor }`) — offset pagination is unstable on a feed that keeps getting new rows inserted at the head, which channel messages do (every client polls). See the Channels section below.
 
 **Markdown** — `program.description` and `message.content` accept markdown. Rendering is the client's responsibility. Use markdown links to share resources (e.g. `[Syllabus](https://...)`)
 
@@ -210,7 +210,7 @@ Org-scoped group chat, separate from announcements above — any channel member 
 | POST | `/api/organizations/:slug/channels/:channelId/members` | Yes | Add member (channel creator or owner/admin) |
 | DELETE | `/api/organizations/:slug/channels/:channelId/members/:userId` | Yes | Remove member (channel creator or owner/admin) |
 | POST | `/api/organizations/:slug/channels/:channelId/messages` | Yes | Send message (any channel member) |
-| GET | `/api/organizations/:slug/channels/:channelId/messages` | Yes | List messages — paginated |
+| GET | `/api/organizations/:slug/channels/:channelId/messages` | Yes | List messages, newest first — cursor-paginated via `?before=<ISO timestamp>&limit=` (default 20, max 100). Response is `{ items, nextCursor }`; pass `nextCursor` back as `before` to load older messages. `nextCursor` is `null` when there's no more history. |
 
 ### Subscriptions
 
