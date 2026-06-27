@@ -9,6 +9,7 @@ import { AuthListener } from './listeners/auth.listener';
 import { InvitationsListener } from './listeners/invitations.listener';
 import { PaymentsListener } from './listeners/payments.listener';
 import { MessagesListener } from './listeners/messages.listener';
+import { ChannelMessagesListener } from './listeners/channel-messages.listener';
 
 @Module({
   imports: [BullModule.registerQueue({ name: EMAIL_QUEUE })],
@@ -21,6 +22,7 @@ import { MessagesListener } from './listeners/messages.listener';
     InvitationsListener,
     PaymentsListener,
     MessagesListener,
+    ChannelMessagesListener,
   ],
   exports: [NotificationsService],
 })

@@ -1,10 +1,10 @@
 # IRB Forge
 
-A multi-tenant SaaS API for mentorship communities. Organizations manage members with role-based access, run cohort programs, send email invitations, and monetize via subscriptions.
+A multi-tenant SaaS API for mentorship communities. Organizations manage members with role-based access, run cohort programs, send email invitations, chat in group channels, and monetize via subscriptions.
 
 **Stack:** NestJS · PostgreSQL · Redis + BullMQ · JWT + Google OAuth · Stripe · Resend + Handlebars
 
-**Current state:** Weekends 1–4 complete — 50 endpoints across auth, users, organizations, memberships, invitations, programs, enrollments, messages, subscriptions, and payments. Stripe billing integrated.
+**Current state:** Weekends 1–4 complete plus org-scoped group channels — 57 endpoints across auth, users, organizations, memberships, invitations, programs, enrollments, messages, channels, subscriptions, and payments. Stripe billing integrated.
 
 ---
 
@@ -196,6 +196,21 @@ Protected endpoints require `Authorization: Bearer <accessToken>`. Access tokens
 |--------|----------|------|-------------|
 | POST | `/api/organizations/:slug/messages` | Yes | Send org-wide announcement (owner/admin/mentor) |
 | GET | `/api/organizations/:slug/messages` | Yes | List announcements with author info — paginated |
+
+### Channels
+
+Org-scoped group chat, separate from announcements above — any channel member can post, not just owner/admin/mentor. Every org gets an auto-created `general` channel that all members join automatically. Free plan orgs are limited to 1 channel; Pro orgs can create unlimited additional channels.
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/organizations/:slug/channels` | Yes | Create channel (owner/admin/mentor; free plan limited to 1) |
+| GET | `/api/organizations/:slug/channels` | Yes | List channels I'm a member of |
+| DELETE | `/api/organizations/:slug/channels/:channelId` | Yes | Delete channel (owner/admin; default channel cannot be deleted) |
+| GET | `/api/organizations/:slug/channels/:channelId/members` | Yes | List channel members (channel creator or owner/admin) |
+| POST | `/api/organizations/:slug/channels/:channelId/members` | Yes | Add member (channel creator or owner/admin) |
+| DELETE | `/api/organizations/:slug/channels/:channelId/members/:userId` | Yes | Remove member (channel creator or owner/admin) |
+| POST | `/api/organizations/:slug/channels/:channelId/messages` | Yes | Send message (any channel member) |
+| GET | `/api/organizations/:slug/channels/:channelId/messages` | Yes | List messages — paginated |
 
 ### Subscriptions
 

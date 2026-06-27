@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InvitationsRepository } from '../repositories/invitations.repository';
 import { RedisService } from '../../../common/redis/redis.service';
@@ -14,6 +14,8 @@ import { Invitation } from '../entities/invitation.entity';
 import { InvitationStatus } from '../enums/invitation-status.enum';
 import { Membership } from '../../memberships/entities/membership.entity';
 import { MembershipRole } from '../../memberships/enums/membership-role.enum';
+import { Channel } from '../../channels/entities/channel.entity';
+import { ChannelMember } from '../../channels/entities/channel-member.entity';
 import { Organization } from '../../organizations/entities/organization.entity';
 import { User } from '../../users/entities/user.entity';
 import { CreateInvitationDto } from '../dto/create-invitation.dto';
@@ -156,6 +158,11 @@ export class InvitationsService {
       await manager.update(Invitation, invitation.id, {
         status: InvitationStatus.ACCEPTED,
       });
+      await this.joinDefaultChannel(
+        manager,
+        invitation.organizationId,
+        user.id,
+      );
     });
 
     await this.redisService.del(`cache:members:${invitation.organizationId}`);
@@ -236,6 +243,11 @@ export class InvitationsService {
       await manager.update(Invitation, invitation.id, {
         status: InvitationStatus.ACCEPTED,
       });
+      await this.joinDefaultChannel(
+        manager,
+        invitation.organizationId,
+        user.id,
+      );
     });
 
     await this.redisService.del(`cache:members:${invitation.organizationId}`);
@@ -318,6 +330,25 @@ export class InvitationsService {
     await this.invitationsRepo.updateStatus(
       invitation.id,
       InvitationStatus.DECLINED,
+    );
+  }
+
+  private async joinDefaultChannel(
+    manager: EntityManager,
+    organizationId: string,
+    userId: string,
+  ): Promise<void> {
+    const defaultChannel = await manager.findOne(Channel, {
+      where: { organizationId, isDefault: true },
+    });
+    if (!defaultChannel) return;
+
+    await manager.save(
+      manager.create(ChannelMember, {
+        channelId: defaultChannel.id,
+        organizationId,
+        userId,
+      }),
     );
   }
 }
