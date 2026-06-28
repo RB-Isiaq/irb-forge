@@ -53,8 +53,11 @@ export class ProgramsService {
     organizationId: string,
     page: number,
     limit: number,
+    status?: ProgramStatus,
   ): Promise<PaginatedResponseDto<Program>> {
-    const isDefaultRequest = page === 1 && limit === 20;
+    // Cache only the plain, unfiltered first page — a status filter is a
+    // different result set and must never read from or write to this key.
+    const isDefaultRequest = page === 1 && limit === 20 && !status;
     const cacheKey = this.programsCacheKey(organizationId);
 
     if (isDefaultRequest) {
@@ -66,6 +69,7 @@ export class ProgramsService {
       organizationId,
       page,
       limit,
+      status,
     );
     const result = new PaginatedResponseDto(items, total, page, limit);
 
