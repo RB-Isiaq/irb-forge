@@ -11,11 +11,11 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ProgramsService } from '../services/programs.service';
 import { CreateProgramDto } from '../dto/create-program.dto';
 import { UpdateProgramDto } from '../dto/update-program.dto';
+import { ListProgramsDto } from '../dto/list-programs.dto';
 import { ProgramResponseDto } from '../dto/program-response.dto';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { CurrentOrg } from '../../../common/decorators/current-org.decorator';
@@ -64,12 +64,13 @@ export class ProgramsController {
   list(
     @Param('slug') _slug: string,
     @CurrentOrg() org: Organization,
-    @Query() pagination: PaginationDto,
+    @Query() query: ListProgramsDto,
   ) {
     return this.programsService.listByOrgPaginated(
       org.id,
-      pagination.page,
-      pagination.limit,
+      query.page,
+      query.limit,
+      query.status,
     );
   }
 

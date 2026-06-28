@@ -27,6 +27,7 @@ const mockProgram = (overrides: Partial<Program> = {}): Program =>
 describe('ProgramsService', () => {
   let service: ProgramsService;
   let repo: jest.Mocked<ProgramsRepository>;
+  let redisService: jest.Mocked<RedisService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -37,6 +38,7 @@ describe('ProgramsService', () => {
           useValue: {
             create: jest.fn(),
             findAllByOrg: jest.fn(),
+            findAllByOrgPaginated: jest.fn(),
             findOneByOrg: jest.fn(),
             update: jest.fn(),
             delete: jest.fn(),
@@ -55,6 +57,52 @@ describe('ProgramsService', () => {
 
     service = module.get(ProgramsService);
     repo = module.get(ProgramsRepository);
+    redisService = module.get(RedisService);
+  });
+
+  // ─── listByOrgPaginated ─────────────────────────────────────────────────────
+
+  describe('listByOrgPaginated', () => {
+    it('passes the status filter through to the repository', async () => {
+      repo.findAllByOrgPaginated.mockResolvedValue([[mockProgram()], 1]);
+
+      await service.listByOrgPaginated('org-uuid', 1, 1, ProgramStatus.ACTIVE);
+
+      expect(repo.findAllByOrgPaginated).toHaveBeenCalledWith(
+        'org-uuid',
+        1,
+        1,
+        ProgramStatus.ACTIVE,
+      );
+    });
+
+    it('does not read from the cache when a status filter is present, even on page 1', async () => {
+      repo.findAllByOrgPaginated.mockResolvedValue([[mockProgram()], 1]);
+
+      await service.listByOrgPaginated('org-uuid', 1, 20, ProgramStatus.ACTIVE);
+
+      expect(redisService.get).not.toHaveBeenCalled();
+    });
+
+    it('does not write a status-filtered result into the shared cache key', async () => {
+      repo.findAllByOrgPaginated.mockResolvedValue([[mockProgram()], 1]);
+
+      await service.listByOrgPaginated('org-uuid', 1, 20, ProgramStatus.ACTIVE);
+
+      expect(redisService.set).not.toHaveBeenCalled();
+    });
+
+    it('still caches the plain unfiltered first page at the default limit', async () => {
+      repo.findAllByOrgPaginated.mockResolvedValue([[mockProgram()], 1]);
+
+      await service.listByOrgPaginated('org-uuid', 1, 20);
+
+      expect(redisService.set).toHaveBeenCalledWith(
+        'cache:programs:org-uuid',
+        expect.any(String),
+        30,
+      );
+    });
   });
 
   // ─── getOne ───────────────────────────────────────────────────────────────

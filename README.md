@@ -174,7 +174,7 @@ Protected endpoints require `Authorization: Bearer <accessToken>`. Access tokens
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/api/organizations/:slug/programs` | Yes | Create program (owner/admin/mentor) |
-| GET | `/api/organizations/:slug/programs` | Yes | List all programs (all members) |
+| GET | `/api/organizations/:slug/programs` | Yes | List all programs (all members) — paginated, plus optional `?status=draft\|active\|completed\|cancelled` filter. `?status=active&limit=1` lets a client read `.total` for a count without fetching records. |
 | GET | `/api/organizations/:slug/programs/:id` | Yes | Get single program (all members) |
 | PATCH | `/api/organizations/:slug/programs/:id` | Yes | Update program (owner/admin; mentor — own only) |
 | DELETE | `/api/organizations/:slug/programs/:id` | Yes | Delete program (owner/admin) |

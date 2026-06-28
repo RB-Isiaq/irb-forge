@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Program } from '../entities/program.entity';
 import { CreateProgramDto } from '../dto/create-program.dto';
 import { UpdateProgramDto } from '../dto/update-program.dto';
+import { ProgramStatus } from '../enums/program-status.enum';
 
 @Injectable()
 export class ProgramsRepository {
@@ -41,9 +42,10 @@ export class ProgramsRepository {
     organizationId: string,
     page: number,
     limit: number,
+    status?: ProgramStatus,
   ): Promise<[Program[], number]> {
     return this.repo.findAndCount({
-      where: { organizationId },
+      where: { organizationId, ...(status && { status }) },
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
